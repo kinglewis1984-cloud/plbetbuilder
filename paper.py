@@ -31,7 +31,7 @@ from build import (
 _SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 
 BOOKS = ("pl", "ucl", "rest")
-STAKES = {"pl": 10.0, "ucl": 10.0, "rest": 5.0}
+STAKES = {"pl": 10.0, "ucl": 10.0, "rest": 10.0}
 START_BANKROLL = 1000.0
 
 # Realistic-ish Premier League bookmaker prices. Keyed by the (metric, line)
@@ -738,8 +738,8 @@ a{{color:#ffb80c}}
     {rb_pager}
   </section>
   <p class="note">Model forward test — the legs <code>suggest()</code> would put on,
-  £{STAKES['pl']:.0f} flat per single (£{STAKES['rest']:.0f} for Rest of Football)
-  plus one matching combined builder on the top-rated fixture each round.
+  £{STAKES['pl']:.0f} flat per single plus one £{STAKES['pl']:.0f} combined
+  builder on the top-rated fixture each round.
   Over-2.5-goals and BTTS legs are priced from real bookmaker odds at placement
   (marked <span class="rl">live</span>) for Premier League and Champions League;
   everything else, and all of Rest of Football, comes from a fixed table.
