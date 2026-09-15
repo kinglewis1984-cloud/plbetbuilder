@@ -1433,7 +1433,7 @@ PICKS_JS = r"""
     panel.innerHTML =
       '<div class="mp-h"><b>My predictions</b><span class="mp-h-btns">' +
       '<button type="button" id="lb-open">Leaderboard</button>' +
-      (player ? '<button type="button" id="hist-open">My History</button>' : '') +
+      '<button type="button" id="hist-open">Player History</button>' +
       '</span></div>' +
       (player ? '<div class="mp-who">' + player +
         ' <button type="button" id="wl-signout">sign out</button>' +
@@ -1469,7 +1469,7 @@ PICKS_JS = r"""
     var lb = document.getElementById('lb-open');
     if (lb) lb.addEventListener('click', openLB);
     var ho = document.getElementById('hist-open');
-    if (ho) ho.addEventListener('click', openHistory);
+    if (ho) ho.addEventListener('click', function () { openHistory(); });
     var wc = document.getElementById('wl-connect');
     if (wc) wc.addEventListener('click', linkWallet);
     var wd = document.getElementById('wl-disconnect');
@@ -2014,12 +2014,20 @@ PICKS_JS = r"""
     var head = '<tr><th>#</th><th>Player</th><th>Pts</th><th>' + tk + '</th></tr>';
     var body = s.length ? s.map(function (r, i) {
       return '<tr class="' + (r.name === player ? 'me' : '') + '"><td>' + (i + 1) +
-             '</td><td>' + r.name + '</td><td>' + r.pts + '</td><td>' +
+             '</td><td><a href="#" class="lb-name" data-name="' + r.name + '">' + r.name +
+             '</a></td><td>' + r.pts + '</td><td>' +
              (r.pts * per).toLocaleString() + '</td></tr>';
     }).join('') : '<tr><td colspan="4" class="lb-empty">No settled predictions yet.</td></tr>';
     document.getElementById('lb-body').innerHTML = head + body;
     document.querySelectorAll('.lb-tab').forEach(function (t) {
       t.classList.toggle('on', t.dataset.tab === which);
+    });
+    document.querySelectorAll('.lb-name').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.getElementById('lb-modal').hidden = true;
+        openHistory(a.dataset.name);
+      });
     });
   }
   document.querySelectorAll('.lb-tab').forEach(function (t) {
@@ -2040,15 +2048,23 @@ PICKS_JS = r"""
     var fri = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diff));
     return fri.toISOString().slice(0, 10);
   }
-  function openHistory() {
+  function openHistory(name) {
     document.getElementById('history-modal').hidden = false;
+    var input = document.getElementById('hist-name');
+    var target = (name || player || '').trim();
+    if (input) input.value = target;
+    loadHistoryFor(target);
+  }
+  function loadHistoryFor(name) {
     var body = document.getElementById('history-body');
-    if (!player || !sb) { body.innerHTML = '<p class="hint-text">Sign in first to see your history.</p>'; return; }
+    if (!name) { body.innerHTML = '<p class="hint-text">Type a player name and hit Search.</p>'; return; }
+    if (!sb) { body.innerHTML = '<p class="hint-text">Could not connect.</p>'; return; }
     body.innerHTML = '<p class="hint-text">Loading…</p>';
     sb.from('coupon_picks').select('fixture_id,market,selection,created_at')
-      .eq('player', player).order('created_at', { ascending: true })
+      .eq('player', name).order('created_at', { ascending: true })
       .then(function (r) {
         if (!r || r.error || !r.data) { body.innerHTML = '<p class="hint-text">Could not load history.</p>'; return; }
+        if (!r.data.length) { body.innerHTML = '<p class="hint-text">No predictions found for that name.</p>'; return; }
         renderHistory(r.data);
       });
   }
@@ -2098,6 +2114,14 @@ PICKS_JS = r"""
         '<div class="wk-body">' + cards + '</div></details>';
     }).join('');
   }
+  var histGo = document.getElementById('hist-go');
+  var histNameInput = document.getElementById('hist-name');
+  if (histGo) histGo.addEventListener('click', function () {
+    loadHistoryFor(histNameInput.value.trim());
+  });
+  if (histNameInput) histNameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); loadHistoryFor(histNameInput.value.trim()); }
+  });
 
   function closeModal(m) {
     m.hidden = true;
@@ -2829,6 +2853,8 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
   .lb-tabs {{ display:flex; gap:6px; margin:12px 0 10px; }}
   .lb-tab.on {{ background:var(--ink); color:var(--paper); border-color:var(--ink); }}
   .lb-scroll {{ max-height:52vh; overflow-y:auto; border:1px solid var(--rule); }}
+  .hist-search {{ display:flex; gap:6px; margin-top:10px; }}
+  .hist-search .modal-in {{ margin:0; flex:1; }}
   #lb-body {{ width:100%; border-collapse:collapse; font-family:"IBM Plex Mono",monospace; font-size:12px; }}
   #lb-body th {{
     text-align:left; font-size:9.5px; letter-spacing:.08em; color:var(--muted);
@@ -2838,6 +2864,8 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
   #lb-body td:nth-child(3) {{ font-weight:600; color:var(--ink); }}
   #lb-body tr.me td {{ background:var(--card); color:var(--goals); font-weight:600; }}
   .lb-empty {{ color:var(--muted); text-align:center; }}
+  .lb-name {{ color:inherit; text-decoration:none; }}
+  .lb-name:hover {{ text-decoration:underline; }}
   .lb-note {{ margin-top:10px; font-size:11px !important; }}
   .lb-prizes {{
     margin-top:12px; padding:10px 12px; border:1px solid var(--cards);
@@ -2868,12 +2896,12 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
   }}
   .mp-wallet b {{ color:var(--ink); }}
   .mp-wallet.linked {{ color:var(--goals); }}
-  #wl-connect, #wl-disconnect, #wl-signin, #wl-account, .modal-go2, #lb-open, #hist-open, .mp-copy, #wl-signout, #wl-pin, #wl-recovery {{
+  #wl-connect, #wl-disconnect, #wl-signin, #wl-account, .modal-go2, #lb-open, #hist-open, #hist-go, .mp-copy, #wl-signout, #wl-pin, #wl-recovery {{
     font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
     text-transform:uppercase; letter-spacing:.04em; cursor:pointer;
     background:#ab47bc; color:#fff; border:1px solid #ab47bc; padding:5px 11px;
   }}
-  #wl-connect:hover, #wl-disconnect:hover, #wl-signin:hover, #wl-account:hover, #lb-open:hover, #hist-open:hover, .mp-copy:hover, #wl-signout:hover, #wl-pin:hover, #wl-recovery:hover {{
+  #wl-connect:hover, #wl-disconnect:hover, #wl-signin:hover, #wl-account:hover, #lb-open:hover, #hist-open:hover, #hist-go:hover, .mp-copy:hover, #wl-signout:hover, #wl-pin:hover, #wl-recovery:hover {{
     background:#9036a3; border-color:#9036a3;
   }}
   .modal-go2 {{ width:100%; margin-top:8px; padding:9px; font-size:12px; }}
@@ -3132,7 +3160,11 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
   <div class="modal" id="history-modal" hidden>
     <div class="modal-box lb">
       <button class="modal-x" data-close aria-label="Close">&times;</button>
-      <h3>My History</h3>
+      <h3>Player History</h3>
+      <div class="hist-search">
+        <input type="text" id="hist-name" class="modal-in" placeholder="Player name">
+        <button type="button" id="hist-go">Search</button>
+      </div>
       <div id="history-body" class="lb-scroll"></div>
     </div>
   </div>
