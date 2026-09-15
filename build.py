@@ -1431,10 +1431,10 @@ PICKS_JS = r"""
       : '<p class="mp-empty">Tap the prediction buttons on any fixture below to start.</p>';
     panel.hidden = false;
     panel.innerHTML =
-      '<div class="mp-h"><b>My predictions</b>' +
+      '<div class="mp-h"><b>My predictions</b><span class="mp-h-btns">' +
       '<button type="button" id="lb-open">Leaderboard</button>' +
       (player ? '<button type="button" id="hist-open">My History</button>' : '') +
-      '</div>' +
+      '</span></div>' +
       (player ? '<div class="mp-who">' + player +
         ' <button type="button" id="wl-signout">sign out</button>' +
         ' <button type="button" id="wl-pin">change PIN</button>' +
@@ -2717,6 +2717,7 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
     background:var(--card); border:1px solid var(--rule); border-top:3px solid var(--goals);
   }}
   .mp-h {{ display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }}
+  .mp-h-btns {{ display:flex; gap:6px; }}
   .mp-h b {{
     font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:16px;
     text-transform:uppercase; letter-spacing:.03em;
@@ -2867,12 +2868,12 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
   }}
   .mp-wallet b {{ color:var(--ink); }}
   .mp-wallet.linked {{ color:var(--goals); }}
-  #wl-connect, #wl-disconnect, #wl-signin, #wl-account, .modal-go2, #lb-open, .mp-copy, #wl-signout, #wl-pin, #wl-recovery {{
+  #wl-connect, #wl-disconnect, #wl-signin, #wl-account, .modal-go2, #lb-open, #hist-open, .mp-copy, #wl-signout, #wl-pin, #wl-recovery {{
     font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
     text-transform:uppercase; letter-spacing:.04em; cursor:pointer;
     background:#ab47bc; color:#fff; border:1px solid #ab47bc; padding:5px 11px;
   }}
-  #wl-connect:hover, #wl-disconnect:hover, #wl-signin:hover, #wl-account:hover, #lb-open:hover, .mp-copy:hover, #wl-signout:hover, #wl-pin:hover, #wl-recovery:hover {{
+  #wl-connect:hover, #wl-disconnect:hover, #wl-signin:hover, #wl-account:hover, #lb-open:hover, #hist-open:hover, .mp-copy:hover, #wl-signout:hover, #wl-pin:hover, #wl-recovery:hover {{
     background:#9036a3; border-color:#9036a3;
   }}
   .modal-go2 {{ width:100%; margin-top:8px; padding:9px; font-size:12px; }}
