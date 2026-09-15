@@ -1,0 +1,271 @@
+<meta charset="utf-8">
+<title>Weekend Coupon — history preview</title>
+<style>
+  :root {
+    --bg:#ece4d3; --card:#f6f1e6; --ink:#221f18; --muted:#726a58; --rule:#d3c8ae;
+    --win:#1f7a44; --loss:#bf3b2b; --accent:#ab47bc;
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#15170f; --card:#1d1f16; --ink:#e8e3d5; --muted:#8f8873; --rule:#343625;
+      --win:#4cae74; --loss:#e0614f; --accent:#ab47bc;
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--ink); padding:28px 16px 60px;
+    font:16px/1.5 "Barlow",-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  .sheet { max-width:720px; margin:0 auto; }
+  .banner {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px;
+    border:1px dashed var(--rule); padding:8px 10px;
+  }
+  .mast { border-bottom:3px double var(--ink); padding-bottom:12px; margin-bottom:18px; }
+  .mast h1 {
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    font-size:30px; text-transform:uppercase; letter-spacing:.01em;
+  }
+  .mast p {
+    margin-top:4px; font-family:"IBM Plex Mono",monospace; font-size:11px;
+    color:var(--muted); text-transform:uppercase; letter-spacing:.04em;
+  }
+  .hist-open {
+    display:block; margin:0 0 18px; padding:9px 16px;
+    background:var(--accent); color:#fff; border:1px solid var(--accent);
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; cursor:pointer;
+  }
+  .hist-open:hover { background:#9036a3; border-color:#9036a3; }
+  #hist-panel[hidden] { display:none; }
+  h2.hist-h {
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    font-size:20px; text-transform:uppercase; letter-spacing:.01em; margin-bottom:12px;
+  }
+  details.wk {
+    background:var(--card); border:1px solid var(--rule); margin-bottom:8px;
+  }
+  details.wk summary {
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    padding:11px 14px; list-style:none;
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    text-transform:uppercase; font-size:14px; letter-spacing:.02em;
+  }
+  details.wk summary::-webkit-details-marker { display:none; }
+  details.wk summary::before { content:"+ "; color:var(--muted); }
+  details.wk[open] summary::before { content:"\2212 "; }
+  .wk-rate { font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted); }
+  .wk-body { padding:0 14px 12px; display:flex; flex-direction:column; gap:9px; }
+  .fx { border-top:1px dotted var(--rule); padding-top:9px; }
+  .fx-h { display:flex; gap:10px; align-items:baseline; margin-bottom:6px; }
+  .fx-date {
+    font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .fx-score {
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    text-transform:uppercase; font-size:14px;
+  }
+  .fx-cells { display:flex; flex-direction:column; gap:5px; }
+  .c {
+    font-family:"IBM Plex Mono",monospace; font-size:11px;
+    display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+    padding:4px 8px; background:var(--bg); border-left:3px solid var(--rule);
+  }
+  .c b { min-width:52px; text-transform:uppercase; font-size:9px; letter-spacing:.05em; color:var(--muted); }
+  .c .pick { font-weight:600; color:var(--ink); }
+  .c .act { font-weight:700; }
+  .c .mark { font-weight:700; letter-spacing:.03em; font-size:9.5px; }
+  .c--win { border-left-color:var(--win); }
+  .c--win .mark, .c--win .act { color:var(--win); }
+  .c--loss { border-left-color:var(--loss); }
+  .c--loss .mark, .c--loss .act { color:var(--loss); }
+  .c--na { color:var(--muted); }
+</style>
+<div class="sheet">
+  <div class="banner">Preview / test page &mdash; not the live site. The History
+    section starts hidden, same as it would on weekendcoupon.com &mdash; press
+    the button to reveal it.</div>
+  <header class="mast">
+    <h1>Weekend Coupon</h1>
+    <p>Premier League &middot; mock masthead for this preview</p>
+  </header>
+  <button type="button" class="hist-open" id="hist-btn"
+    onclick="var p=document.getElementById('hist-panel'); p.hidden=!p.hidden; this.textContent = p.hidden ? 'History' : 'Hide history';">History</button>
+  <section id="hist-panel" hidden>
+    <h2 class="hist-h">Result history</h2>
+    
+      <details class="wk" open>
+        <summary>
+          <span class="wk-span">w/o 04 SEP</span>
+          <span class="wk-rate">18/30 &nbsp;60%</span>
+        </summary>
+        <div class="wk-body">
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">FRI 04 SEP</span>
+            <span class="fx-score">Ipswich Town 0&ndash;2 Liverpool</span></div>
+          <div class="fx-cells"><span class="c c--loss"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Newcastle United 2&ndash;2 AFC Bournemouth</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 10.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Under 4.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Brentford 1&ndash;1 Sunderland</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Under 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Brighton & Hove Albion 1&ndash;1 Leeds United</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">13</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Fulham 2&ndash;3 Crystal Palace</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">0</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Manchester City 1&ndash;0 Coventry City</span></div>
+          <div class="fx-cells"><span class="c c--loss"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">9</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Nottingham Forest 0&ndash;0 Tottenham Hotspur</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">0</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">12</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 05 SEP</span>
+            <span class="fx-score">Hull City 0&ndash;0 Aston Villa</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">0</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 06 SEP</span>
+            <span class="fx-score">Everton 2&ndash;2 Manchester United</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 06 SEP</span>
+            <span class="fx-score">Arsenal 2&ndash;1 Chelsea</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 10.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span></span></div>
+        </div></div>
+      </details>
+      <details class="wk">
+        <summary>
+          <span class="wk-span">w/o 28 AUG</span>
+          <span class="wk-rate">23/30 &nbsp;77%</span>
+        </summary>
+        <div class="wk-body">
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">FRI 28 AUG</span>
+            <span class="fx-score">Crystal Palace 1&ndash;4 Manchester City</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 29 AUG</span>
+            <span class="fx-score">Liverpool 2&ndash;2 Nottingham Forest</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 10.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 29 AUG</span>
+            <span class="fx-score">AFC Bournemouth 1&ndash;1 Everton</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">17</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 29 AUG</span>
+            <span class="fx-score">Coventry City 0&ndash;1 Hull City</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Under 8.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 29 AUG</span>
+            <span class="fx-score">Tottenham Hotspur 0&ndash;2 Newcastle United</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 10.5</span> <span class="arrow">&rarr;</span> <span class="act">16</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 30 AUG</span>
+            <span class="fx-score">Chelsea 4&ndash;3 Brighton & Hove Albion</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">11</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 4.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 30 AUG</span>
+            <span class="fx-score">Leeds United 1&ndash;1 Brentford</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">11</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 30 AUG</span>
+            <span class="fx-score">Sunderland 1&ndash;0 Fulham</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 30 AUG</span>
+            <span class="fx-score">Manchester United 5&ndash;2 Ipswich Town</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">12</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">MON 31 AUG</span>
+            <span class="fx-score">Aston Villa 0&ndash;1 Arsenal</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span></div>
+        </div></div>
+      </details>
+      <details class="wk">
+        <summary>
+          <span class="wk-span">w/o 21 AUG</span>
+          <span class="wk-rate">19/30 &nbsp;63%</span>
+        </summary>
+        <div class="wk-body">
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">FRI 21 AUG</span>
+            <span class="fx-score">Arsenal 3&ndash;0 Coventry City</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">10</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 22 AUG</span>
+            <span class="fx-score">Hull City 2&ndash;0 Manchester United</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 22 AUG</span>
+            <span class="fx-score">Everton 2&ndash;0 Crystal Palace</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">LOST</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 22 AUG</span>
+            <span class="fx-score">Ipswich Town 2&ndash;1 Sunderland</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Under 8.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 22 AUG</span>
+            <span class="fx-score">Nottingham Forest 0&ndash;1 Leeds United</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 8.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SAT 22 AUG</span>
+            <span class="fx-score">Brentford 3&ndash;0 Tottenham Hotspur</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Under 3.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">10</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 23 AUG</span>
+            <span class="fx-score">Brighton & Hove Albion 4&ndash;0 Aston Villa</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 1.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 23 AUG</span>
+            <span class="fx-score">Manchester City 2&ndash;1 AFC Bournemouth</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 10.5</span> <span class="arrow">&rarr;</span> <span class="act">11</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">LOST</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">SUN 23 AUG</span>
+            <span class="fx-score">Newcastle United 2&ndash;2 Liverpool</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">Over 10.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">WON</span></span></div>
+        </div>
+        <div class="fx">
+          <div class="fx-h"><span class="fx-date">MON 24 AUG</span>
+            <span class="fx-score">Fulham 2&ndash;3 Chelsea</span></div>
+          <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">Over 2.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span><span class="c c--win"><b>Corners</b> <span class="pick">Over 9.5</span> <span class="arrow">&rarr;</span> <span class="act">10</span> <span class="mark">WON</span></span><span class="c c--win"><b>Cards</b> <span class="pick">Over 3.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span></span></div>
+        </div></div>
+      </details>
+  </section>
+</div>

@@ -1,0 +1,112 @@
+<meta charset="utf-8">
+<title>Pick note — preview</title>
+<style>
+  :root {
+    --paper:#ece4d3; --card:#f6f1e6; --ink:#221f18; --muted:#726a58;
+    --rule:#d3c8ae; --goals:#1f7a44; --corners:#2f6f9e; --cards:#c98a08;
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#15170f; --card:#1d1f16; --ink:#e8e3d5; --muted:#8f8873;
+      --rule:#343625; --goals:#4cae74; --corners:#5aa0cf; --cards:#e0a72c;
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--paper); color:var(--ink); padding:28px 16px 60px;
+    font:16px/1.5 "Barlow",-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  .sheet { max-width:720px; margin:0 auto; }
+  .banner {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:20px;
+    border:1px dashed var(--rule); padding:8px 10px;
+  }
+  h1 {
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    font-size:26px; text-transform:uppercase; margin-bottom:6px;
+  }
+  .lead { color:var(--muted); font-size:13px; margin-bottom:22px; }
+  .opt { margin-bottom:26px; }
+  .opt-tag {
+    display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10px;
+    font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    background:var(--ink); color:var(--paper); padding:3px 8px; margin-bottom:10px;
+  }
+  .picks {
+    background:var(--card); border:1px solid var(--rule); padding:12px 14px;
+  }
+  .picks-h {
+    font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+    letter-spacing:.06em; font-size:11px; color:var(--muted); margin-bottom:6px;
+  }
+  .pick-note {
+    font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:12px;
+    padding-bottom:10px; border-bottom:1px dotted var(--rule);
+  }
+  .pkrow { display:flex; align-items:center; gap:9px; margin-bottom:6px; }
+  .pkrow > b {
+    font-family:"IBM Plex Mono",monospace; font-size:9.5px; font-weight:600;
+    color:var(--muted); text-transform:uppercase; min-width:82px;
+  }
+  .pkbtns { display:flex; gap:4px; flex:1; }
+  .pk {
+    flex:1; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    font-weight:600; text-transform:uppercase; letter-spacing:.03em;
+    padding:8px 4px; background:var(--paper); border:1px solid var(--rule);
+    color:var(--ink); cursor:pointer;
+  }
+  .pk.on { background:var(--goals); border-color:var(--goals); color:#fff; }
+</style>
+<div class="sheet">
+  <div class="banner">Preview / test page &mdash; not the live site. Three
+    wording options for the note under "Your predictions". Nothing here has
+    been pushed to weekendcoupon.com.</div>
+  <h1>Your predictions &mdash; note wording</h1>
+  <p class="lead">Correction on the behaviour first: right now you <b>can</b>
+    change a pick as many times as you like &mdash; tapping a different button
+    just overwrites it. It only locks for good once that match kicks off.
+    So the note should say that, not "you have to wait for kickoff to change it"
+    (which is the opposite of how it works). Here are three ways to word it:</p>
+
+  <div class="opt">
+    <span class="opt-tag">Final wording &mdash; ready to ship?</span>
+    <div class="picks">
+      <div class="picks-h">Your predictions</div>
+      <p class="pick-note"><b>Once tapped, pick is live.</b> You can change
+        your mind any time before kickoff &mdash; the last one you tap is the
+        one that counts. Once the match kicks off, your picks lock in.</p>
+      <div class="pkrow"><b>Goals 1.5</b><div class="pkbtns">
+        <button class="pk on">Over</button><button class="pk">Under</button></div></div>
+      <div class="pkrow"><b>Corners 9.5</b><div class="pkbtns">
+        <button class="pk on">Over</button><button class="pk">Under</button></div></div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <span class="opt-tag">Option 2 &mdash; plainest</span>
+    <div class="picks">
+      <div class="picks-h">Your predictions</div>
+      <p class="pick-note">Your pick isn't final until kickoff &mdash; feel free
+        to switch it right up until then. After that, it's locked.</p>
+      <div class="pkrow"><b>Goals 1.5</b><div class="pkbtns">
+        <button class="pk on">Over</button><button class="pk">Under</button></div></div>
+      <div class="pkrow"><b>Corners 9.5</b><div class="pkbtns">
+        <button class="pk on">Over</button><button class="pk">Under</button></div></div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <span class="opt-tag">Option 3 &mdash; most explicit</span>
+    <div class="picks">
+      <div class="picks-h">Your predictions</div>
+      <p class="pick-note">Picks can be changed as often as you like before
+        kickoff. Once the game starts, whatever you last picked is locked in
+        for good.</p>
+      <div class="pkrow"><b>Goals 1.5</b><div class="pkbtns">
+        <button class="pk on">Over</button><button class="pk">Under</button></div></div>
+      <div class="pkrow"><b>Corners 9.5</b><div class="pkbtns">
+        <button class="pk on">Over</button><button class="pk">Under</button></div></div>
+    </div>
+  </div>
+</div>

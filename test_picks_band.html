@@ -1,0 +1,127 @@
+<meta charset="utf-8">
+<title>Weekend Coupon — picks preview</title>
+<style>
+  :root {
+    --bg:#ece4d3; --card:#f6f1e6; --ink:#221f18; --muted:#726a58; --rule:#d3c8ae;
+    --win:#1f7a44; --loss:#bf3b2b;
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#15170f; --card:#1d1f16; --ink:#e8e3d5; --muted:#8f8873; --rule:#343625;
+      --win:#4cae74; --loss:#e0614f;
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--bg); color:var(--ink); padding:28px 16px 60px;
+    font:16px/1.5 "Barlow",-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  .sheet { max-width:720px; margin:0 auto; }
+  .banner {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px;
+    border:1px dashed var(--rule); padding:8px 10px;
+  }
+  h1 {
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    font-size:30px; text-transform:uppercase; letter-spacing:.01em;
+  }
+  .head {
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:3px double var(--ink); padding-bottom:10px; margin-bottom:6px;
+  }
+  .rate { font-family:"IBM Plex Mono",monospace; font-size:15px; font-weight:600; }
+  .key { font-size:12.5px; color:var(--muted); margin:10px 0 18px; }
+  .fx {
+    background:var(--card); border:1px solid var(--rule);
+    border-left:3px solid var(--muted); padding:10px 12px; margin-bottom:9px;
+  }
+  .fx-h { display:flex; gap:10px; align-items:baseline; margin-bottom:7px; }
+  .fx-date {
+    font-family:"IBM Plex Mono",monospace; font-size:9.5px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.06em;
+  }
+  .fx-score {
+    font-family:"Barlow Condensed","Barlow",sans-serif; font-weight:700;
+    text-transform:uppercase; font-size:15px; letter-spacing:.02em;
+  }
+  .fx-cells { display:flex; flex-direction:column; gap:5px; }
+  .c {
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+    padding:5px 8px; background:var(--bg); border-left:3px solid var(--rule);
+  }
+  .c b { min-width:58px; text-transform:uppercase; font-size:9.5px; letter-spacing:.05em; color:var(--muted); }
+  .c .pick { font-weight:600; color:var(--ink); }
+  .c .act { font-weight:700; }
+  .c .mark { font-weight:700; letter-spacing:.04em; }
+  .c .modelnote { margin-left:auto; font-size:9.5px; color:var(--muted); }
+  .c--win { border-left-color:var(--win); }
+  .c--win .mark, .c--win .act { color:var(--win); }
+  .c--loss { border-left-color:var(--loss); }
+  .c--loss .mark, .c--loss .act { color:var(--loss); }
+  .c--na { color:var(--muted); }
+</style>
+<div class="sheet">
+  <div class="banner">Preview / test page &mdash; not the live site. Shows what
+    the suggested Over/Under pick was and whether it landed, instead of the
+    &plusmn;range band.</div>
+  <div class="head">
+    <h1>Last weekend &mdash; did our picks land?</h1>
+    <span class="rate">18/30 &nbsp;60%</span>
+  </div>
+  <p class="key">Each metric shows the <b>suggested pick</b> (over/under + line)
+    &rarr; the <b>actual</b> number in the match &rarr; <b>won or lost</b>.
+    "model" in grey is the raw expected value the pick came from.</p>
+  
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-04</span>
+          <span class="fx-score">Ipswich Town 0&ndash;2 Liverpool</span></div>
+        <div class="fx-cells"><span class="c c--loss"><b>Goals</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span> <span class="modelnote">model 3.5</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 9.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span> <span class="modelnote">model 10.0</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span> <span class="modelnote">model 4.0</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Newcastle United 2&ndash;2 AFC Bournemouth</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span> <span class="modelnote">model 3.0</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 10.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span> <span class="modelnote">model 11.5</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">UNDER 4.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">LOST</span> <span class="modelnote">model 4.5</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Brentford 1&ndash;1 Sunderland</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">UNDER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span> <span class="modelnote">model 2.0</span></span><span class="c c--win"><b>Corners</b> <span class="pick">UNDER 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">WON</span> <span class="modelnote">model 8.5</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span> <span class="modelnote">model 4.0</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Brighton & Hove Albion 1&ndash;1 Leeds United</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">OVER 1.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">WON</span> <span class="modelnote">model 2.5</span></span><span class="c c--win"><b>Corners</b> <span class="pick">OVER 8.5</span> <span class="arrow">&rarr;</span> <span class="act">13</span> <span class="mark">WON</span> <span class="modelnote">model 9.5</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span> <span class="modelnote">model 4.0</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Fulham 2&ndash;3 Crystal Palace</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">OVER 1.5</span> <span class="arrow">&rarr;</span> <span class="act">5</span> <span class="mark">WON</span> <span class="modelnote">model 3.0</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 8.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span> <span class="modelnote">model 9.0</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">0</span> <span class="mark">LOST</span> <span class="modelnote">model 3.5</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Manchester City 1&ndash;0 Coventry City</span></div>
+        <div class="fx-cells"><span class="c c--loss"><b>Goals</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">1</span> <span class="mark">LOST</span> <span class="modelnote">model 3.0</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 9.5</span> <span class="arrow">&rarr;</span> <span class="act">9</span> <span class="mark">LOST</span> <span class="modelnote">model 10.5</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span> <span class="modelnote">model 3.5</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Nottingham Forest 0&ndash;0 Tottenham Hotspur</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">UNDER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">0</span> <span class="mark">WON</span> <span class="modelnote">model 2.0</span></span><span class="c c--win"><b>Corners</b> <span class="pick">OVER 9.5</span> <span class="arrow">&rarr;</span> <span class="act">12</span> <span class="mark">WON</span> <span class="modelnote">model 10.5</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span> <span class="modelnote">model 4.0</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-05</span>
+          <span class="fx-score">Hull City 0&ndash;0 Aston Villa</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">UNDER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">0</span> <span class="mark">WON</span> <span class="modelnote">model 2.0</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span> <span class="modelnote">model 9.5</span></span><span class="c c--loss"><b>Cards</b> <span class="pick">OVER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">2</span> <span class="mark">LOST</span> <span class="modelnote">model 4.0</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-06</span>
+          <span class="fx-score">Everton 2&ndash;2 Manchester United</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">4</span> <span class="mark">WON</span> <span class="modelnote">model 3.0</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 8.5</span> <span class="arrow">&rarr;</span> <span class="act">7</span> <span class="mark">LOST</span> <span class="modelnote">model 9.0</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span> <span class="modelnote">model 3.5</span></span></div>
+      </article>
+      <article class="fx">
+        <div class="fx-h"><span class="fx-date">2026-09-06</span>
+          <span class="fx-score">Arsenal 2&ndash;1 Chelsea</span></div>
+        <div class="fx-cells"><span class="c c--win"><b>Goals</b> <span class="pick">OVER 2.5</span> <span class="arrow">&rarr;</span> <span class="act">3</span> <span class="mark">WON</span> <span class="modelnote">model 3.0</span></span><span class="c c--loss"><b>Corners</b> <span class="pick">OVER 10.5</span> <span class="arrow">&rarr;</span> <span class="act">8</span> <span class="mark">LOST</span> <span class="modelnote">model 11.5</span></span><span class="c c--win"><b>Cards</b> <span class="pick">OVER 3.5</span> <span class="arrow">&rarr;</span> <span class="act">6</span> <span class="mark">WON</span> <span class="modelnote">model 4.0</span></span></div>
+      </article>
+</div>

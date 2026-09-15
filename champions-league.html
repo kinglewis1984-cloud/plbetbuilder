@@ -1,0 +1,1678 @@
+<meta charset="utf-8">
+<title>Weekend Coupon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper:#ece4d3; --card:#f6f1e6; --ink:#221f18; --muted:#726a58;
+    --rule:#d3c8ae; --rule-soft:#e1d8c2;
+    --goals:#1f7a44; --corners:#2f6f9e; --cards:#c98a08; --hot:#bf3b2b;
+    --btts:#7a4fb0; --result:#1c8f82;
+    --warn:#b0521c; --warn-bg:#f1e0cd;
+    --shadow:0 1px 0 rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#15170f; --card:#1d1f16; --ink:#e8e3d5; --muted:#8f8873;
+      --rule:#343625; --rule-soft:#282a1c;
+      --goals:#4cae74; --corners:#5aa0cf; --cards:#e0a72c; --hot:#e0614f;
+      --btts:#b98ee0; --result:#4cc9ba;
+      --warn:#e0863f; --warn-bg:#2c2113;
+      --shadow:0 1px 0 rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#15170f; --card:#1d1f16; --ink:#e8e3d5; --muted:#8f8873;
+    --rule:#343625; --rule-soft:#282a1c;
+    --goals:#4cae74; --corners:#5aa0cf; --cards:#e0a72c; --hot:#e0614f;
+    --btts:#b98ee0; --result:#4cc9ba;
+    --warn:#e0863f; --warn-bg:#2c2113;
+    --shadow:0 1px 0 rgba(0,0,0,.3);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    background:var(--paper); color:var(--ink);
+    font:16px/1.55 Barlow,-apple-system,Segoe UI,Roboto,sans-serif;
+    padding:32px 18px 72px; -webkit-font-smoothing:antialiased;
+  }
+  .sheet { max-width:760px; margin:0 auto; }
+
+  .masthead { border-bottom:3px double var(--ink); padding-bottom:14px; margin-bottom:20px; }
+  .masthead h1 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700;
+    font-size:clamp(30px,7vw,46px); line-height:.98; letter-spacing:.01em;
+    text-transform:uppercase; text-wrap:balance;
+  }
+  .tagline {
+    font-family:"Barlow",sans-serif; font-size:14px; font-weight:500;
+    color:var(--warn); margin-top:4px;
+  }
+  .issue {
+    display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.04em;
+  }
+  .issue b { color:var(--ink); font-weight:600; }
+  .pgnav { display:flex; gap:6px; margin:0 0 20px; }
+  .pgnav:last-of-type { margin:20px 0 0; }
+  .pgnav-t {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em; text-decoration:none;
+    padding:6px 12px; border:1px solid var(--warn); color:var(--warn);
+  }
+  .pgnav-t:hover { background:var(--warn-bg); }
+  .pgnav-t.on { background:var(--warn); color:#fff; border-color:var(--warn); }
+  .intro {
+    font-size:12.5px; line-height:1.6; color:var(--muted); margin:-6px 0 22px;
+    max-width:64ch;
+  }
+  .intro b { color:var(--ink); font-weight:600; }
+  .sortbar { display:flex; justify-content:flex-end; margin-bottom:2px; }
+  #sort-toggle {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--rule); padding:5px 10px;
+  }
+  #sort-toggle:hover { border-color:var(--ink); }
+  #sort-toggle::before { content:"\21c5  "; }
+
+  .fresh-note {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.04em; line-height:1.55; margin-bottom:8px;
+  }
+  .freshbar {
+    position:sticky; top:0; z-index:10;
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    background:var(--paper); border-bottom:1px solid var(--rule);
+    padding:8px 0; margin-bottom:16px;
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.04em;
+  }
+  .freshbar-btn {
+    font:inherit; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--ink); background:var(--card);
+    border:1px solid var(--rule); padding:4px 10px; cursor:pointer;
+  }
+  .freshbar-btn:hover { border-color:var(--ink); }
+  .freshbar-btn:focus-visible { outline:2px solid var(--hot); outline-offset:2px; }
+  .freshbar--stale {
+    background:var(--warn-bg); border-bottom-color:var(--warn); color:var(--warn);
+  }
+  .freshbar--stale .freshbar-btn {
+    background:var(--warn); border-color:var(--warn); color:#fff; font-weight:600;
+  }
+
+  .results { margin-bottom:28px; }
+  .results-head {
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:1px solid var(--rule); padding-bottom:6px; margin-bottom:10px;
+  }
+  .results-head h2 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:16px;
+    text-transform:uppercase; letter-spacing:.03em;
+  }
+  .results-rate {
+    font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600;
+    color:var(--muted); font-variant-numeric:tabular-nums;
+  }
+  .results-key {
+    font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5;
+  }
+  .results-key b { color:var(--ink); font-weight:600; }
+  .results-key span { font-family:"IBM Plex Mono",monospace; font-size:10.5px; }
+
+  .season { margin-bottom:28px; }
+  .season-head {
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:1px solid var(--rule); padding-bottom:6px; margin-bottom:10px;
+  }
+  .season-head h2 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:16px;
+    text-transform:uppercase; letter-spacing:.03em;
+  }
+  .season-pct {
+    font-family:"IBM Plex Mono",monospace; font-size:20px; font-weight:600;
+    color:var(--ink); font-variant-numeric:tabular-nums;
+  }
+  .sbar { height:8px; background:var(--rule-soft); overflow:hidden; }
+  .sbar span { display:block; height:100%; width:var(--w); background:var(--muted); }
+  .sbar--all { height:12px; }
+  .sbar--all span { background:var(--goals); }
+  .season-sub { font-size:11.5px; color:var(--muted); margin:8px 0 12px; line-height:1.5; }
+  .season-metrics { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .smetric { display:grid; grid-template-columns:58px 1fr 40px; align-items:center; gap:9px; }
+  .smetric b {
+    font-family:"Barlow Condensed",sans-serif; font-weight:600; font-size:11px;
+    text-transform:uppercase; letter-spacing:.03em; color:var(--muted);
+  }
+  .smetric i {
+    font-family:"IBM Plex Mono",monospace; font-style:normal; font-size:11px;
+    text-align:right; color:var(--ink); font-variant-numeric:tabular-nums;
+  }
+  .smetric:nth-child(1) .sbar span { background:var(--goals); }
+  .smetric:nth-child(2) .sbar span { background:var(--corners); }
+  .smetric:nth-child(3) .sbar span { background:var(--cards); }
+  .smetric:nth-child(4) .sbar span { background:var(--btts); }
+  .smetric:nth-child(5) .sbar span { background:var(--result); }
+  .season-weeks { display:flex; gap:4px; align-items:flex-end; }
+  .swk {
+    flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .swk-bar {
+    width:100%; height:34px; background:var(--rule-soft); position:relative;
+  }
+  .swk-bar::after {
+    content:""; position:absolute; left:0; right:0; bottom:0; height:var(--h);
+    background:var(--ink); opacity:.55;
+  }
+  .swk em {
+    font-family:"IBM Plex Mono",monospace; font-style:normal; font-size:8px;
+    letter-spacing:.03em; color:var(--muted); white-space:nowrap;
+  }
+  .rz { padding:8px 0; border-bottom:1px dotted var(--rule); }
+  .rz:last-child { border-bottom:0; }
+  .rz-score {
+    font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+    font-size:14px; letter-spacing:.02em; margin-bottom:5px;
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:8px;
+  }
+  .rz-score b { font-weight:600; }
+  .rz-day {
+    font-family:"IBM Plex Mono",monospace; font-size:9.5px; font-weight:400;
+    text-transform:none; letter-spacing:.03em; color:var(--muted);
+    border:1px solid var(--rule); padding:1px 5px;
+  }
+  .rz-tot {
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:400;
+    text-transform:none; letter-spacing:0; color:var(--muted);
+  }
+  .rz-lines { display:flex; flex-wrap:wrap; gap:5px; }
+  .rzl {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; line-height:1.35;
+    padding:2px 7px; border:1px solid var(--rule); color:var(--ink);
+    font-variant-numeric:tabular-nums; display:inline-flex; align-items:center; gap:5px;
+  }
+  .rzl b { font-weight:600; color:var(--muted); text-transform:uppercase;
+    font-size:9.5px; letter-spacing:.04em; }
+  .rzl-p { font-weight:600; color:var(--ink); }
+  .rzl::after { font-weight:700; }
+  .rzl--hit { border-color:var(--goals); }
+  .rzl--hit::after { content:"\2713"; color:var(--goals); }
+  .rzl--miss { border-color:var(--hot); }
+  .rzl--miss::after { content:"\2715"; color:var(--hot); }
+  .rzl--na { color:var(--muted); font-style:italic; }
+  .rzl--na .rzl-p { color:var(--muted); font-weight:400; }
+  .rzl-d { font-style:normal; color:var(--muted); font-size:9.5px; }
+
+  .history { margin-bottom:26px; }
+  .hist-btn {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; cursor:pointer;
+    background:#ab47bc; color:#fff; border:1px solid #ab47bc; padding:8px 16px;
+  }
+  .hist-btn:hover { background:#9036a3; border-color:#9036a3; }
+  .hist-panel { margin-top:14px; }
+  .hist-panel[hidden] { display:none; }
+  .hist-panel h2 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:18px;
+    text-transform:uppercase; letter-spacing:.02em; margin-bottom:10px;
+  }
+  details.wk {
+    background:var(--card); border:1px solid var(--rule); margin-bottom:8px;
+  }
+  details.wk summary {
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    padding:10px 13px; list-style:none;
+    font-family:"Barlow Condensed",sans-serif; font-weight:700;
+    text-transform:uppercase; font-size:13px; letter-spacing:.02em;
+  }
+  details.wk summary::-webkit-details-marker { display:none; }
+  details.wk summary::before { content:"+ "; color:var(--muted); }
+  details.wk[open] summary::before { content:"\2212 "; }
+  .wk-rate { font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); }
+  .wk-body { padding:0 13px 6px; }
+  .wk-body .rz { border-bottom:1px dotted var(--rule); }
+  .wk-body .rz:last-child { border-bottom:0; }
+
+  .callouts { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:26px; }
+  .callout {
+    display:flex; flex-direction:column; gap:3px; padding:11px 12px;
+    background:var(--card); border:1px solid var(--rule); border-top:3px solid var(--muted);
+    text-decoration:none; color:var(--ink); box-shadow:var(--shadow);
+  }
+  .callout--goals { border-top-color:var(--goals); }
+  .callout--corners { border-top-color:var(--corners); }
+  .callout--cards { border-top-color:var(--cards); }
+  .callout-head { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .callout-tag { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.09em; color:var(--muted); }
+  .callout-badge {
+    font-family:"IBM Plex Mono",monospace; font-size:8.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.08em; white-space:nowrap;
+    color:var(--hot); border:1px solid var(--hot); padding:1px 5px;
+  }
+  .callout-fx { font-family:"Barlow Condensed",sans-serif; font-weight:600; font-size:15px; line-height:1.1; text-transform:uppercase; }
+  .callout-val { font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:19px; font-variant-numeric:tabular-nums; }
+  .callout-val em { font-style:normal; font-weight:600; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .callout:hover { border-color:var(--ink); }
+  .callout:focus-visible { outline:2px solid var(--hot); outline-offset:2px; }
+
+  .line {
+    display:grid; grid-template-columns:52px minmax(0, 1fr); gap:16px;
+    padding:18px 0; border-top:1px solid var(--rule);
+  }
+  .line > .body { min-width:0; }
+  .line:last-of-type { border-bottom:1px solid var(--rule); }
+  .line--top {
+    background:
+      linear-gradient(var(--card),var(--card)) padding-box;
+    border-top:2px solid var(--hot);
+    margin:0 -14px; padding:18px 14px;
+  }
+  .gutter { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .rank {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:30px;
+    line-height:1; color:var(--muted); font-variant-numeric:tabular-nums;
+  }
+  .line--top .rank { color:var(--hot); }
+  .juice {
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px;
+    padding:2px 7px; border:1px solid var(--rule); color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .line--top .juice { border-color:var(--hot); color:var(--hot); }
+
+  .fixture { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .fixture h2 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:600;
+    font-size:clamp(19px,4.4vw,25px); line-height:1.05; text-transform:uppercase;
+    display:flex; align-items:baseline; gap:9px; flex-wrap:wrap;
+  }
+  .fixture .v { color:var(--muted); font-weight:500; font-size:.7em; }
+  .ko {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+    letter-spacing:.05em; white-space:nowrap; display:flex; align-items:center; gap:8px;
+  }
+  .top-badge {
+    font-weight:600; color:var(--hot); border:1px solid var(--hot);
+    padding:1px 6px; letter-spacing:.08em;
+  }
+
+  .flag-promo, .flag-red {
+    font-size:12.5px; margin-top:9px; padding-left:11px;
+    border-left:2px solid var(--cards); color:var(--muted);
+  }
+  .flag-red { border-left-color:var(--hot); }
+
+  .meters { margin:14px 0 4px; display:flex; flex-direction:column; gap:11px; }
+  .meter-head {
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+    letter-spacing:.03em; font-size:13px; color:var(--muted); margin-bottom:5px;
+  }
+  .meter-head b {
+    font-family:"IBM Plex Mono",monospace; font-size:16px; font-weight:600;
+    color:var(--ink); font-variant-numeric:tabular-nums;
+  }
+  .track { position:relative; height:6px; background:var(--rule-soft); }
+  .fill {
+    position:absolute; inset:0 auto 0 0; width:var(--w);
+    animation:grow .7s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .meter--goals .fill { background:var(--goals); }
+  .meter--corners .fill { background:var(--corners); }
+  .meter--cards .fill { background:var(--cards); }
+  .tick { position:absolute; top:-3px; bottom:-3px; width:0; }
+  .tick i { position:absolute; inset:0; width:1px; background:var(--ink); opacity:.28; }
+  .tick em {
+    position:absolute; top:11px; left:0; transform:translateX(-50%);
+    font-family:"IBM Plex Mono",monospace; font-style:normal; font-size:9.5px;
+    color:var(--muted);
+  }
+  @keyframes grow { from { width:0; } }
+  @media (prefers-reduced-motion:reduce) { .fill { animation:none; } }
+
+  .split {
+    display:flex; flex-wrap:wrap; gap:4px 22px; margin:22px 0 4px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .split b { color:var(--ink); font-weight:600; }
+
+  .builder { margin-top:12px; }
+  .builder h3 {
+    font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+    letter-spacing:.06em; font-size:12px; color:var(--muted); margin-bottom:7px;
+  }
+  .builder ul { list-style:none; display:flex; flex-direction:column; gap:4px; }
+  .leg {
+    display:flex; align-items:flex-start; gap:9px; font-size:14px;
+    padding:6px 10px; background:var(--card); border-left:3px solid var(--muted);
+  }
+  .leg i {
+    flex:none; width:13px; height:13px; margin-top:3px; border:1.5px solid currentColor;
+    position:relative;
+  }
+  .leg i::after {
+    content:""; position:absolute; left:2px; top:-2px; width:5px; height:9px;
+    border:solid currentColor; border-width:0 2px 2px 0; transform:rotate(40deg);
+  }
+  .leg--goals { border-left-color:var(--goals); color:var(--goals); }
+  .leg--corners { border-left-color:var(--corners); color:var(--corners); }
+  .leg--cards { border-left-color:var(--cards); color:var(--cards); }
+  .leg { color:var(--ink); }
+  .leg--goals i { color:var(--goals); }
+  .leg--corners i { color:var(--corners); }
+  .leg--cards i { color:var(--cards); }
+
+  .wc-pick {
+    margin-top:9px; padding:7px 10px; background:var(--card);
+    border-left:3px solid var(--result); font-size:12.5px; color:var(--muted);
+  }
+  .wc-pick b {
+    font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--ink); font-weight:600;
+  }
+  .wc-pick span { color:var(--ink); font-weight:600; }
+  .wc-pick .wc-btts { color:var(--btts); }
+
+  .colophon {
+    margin-top:34px; padding-top:16px; border-top:3px double var(--ink);
+    font-size:12.5px; color:var(--muted); line-height:1.65;
+  }
+  .colophon b { color:var(--ink); }
+  .colophon a { color:var(--ink); }
+
+  .sponsors {
+    margin-top:20px; display:grid; gap:10px;
+    grid-template-columns:repeat(3, 1fr);
+  }
+  .sponsor {
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    background:var(--card); border:1px solid var(--rule);
+    border-top:3px solid var(--muted);
+    text-decoration:none; color:var(--ink); box-shadow:var(--shadow);
+  }
+  .sponsor:hover { border-color:var(--ink); }
+  .sponsor:focus-visible { outline:2px solid var(--hot); outline-offset:2px; }
+  .sponsor img { border-radius:50%; flex:none; object-fit:cover; background:var(--paper); }
+  .sponsor span { display:flex; flex-direction:column; gap:1px; min-width:0; }
+  .sponsor em {
+    font-family:"IBM Plex Mono",monospace; font-style:normal; font-size:9px;
+    text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+  }
+  .sponsor b {
+    font-family:"Barlow Condensed",sans-serif; font-weight:600; font-size:15px;
+    line-height:1.1; text-transform:uppercase;
+  }
+  .sponsor i { font-style:normal; font-size:11px; color:var(--muted); }
+  @media (max-width:560px) { .sponsors { grid-template-columns:1fr; } }
+  .tg-line {
+    margin-top:14px; text-align:center;
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.04em;
+  }
+  .tg-line a { color:var(--ink); font-weight:600; }
+
+  /* ---- picks + leaderboard ---- */
+  .mypicks {
+    margin-bottom:26px; padding:14px 16px;
+    background:var(--card); border:1px solid var(--rule); border-top:3px solid var(--goals);
+  }
+  .mp-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
+  .mp-h b {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:16px;
+    text-transform:uppercase; letter-spacing:.03em;
+  }
+  #lb-open, .modal-go, .lb-tab {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.04em; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--rule); padding:5px 11px;
+  }
+  #lb-open:hover, .lb-tab:hover { border-color:var(--ink); }
+  .mp-who {
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted);
+    letter-spacing:.03em; margin-bottom:9px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .mp-empty { font-size:12.5px; color:var(--muted); }
+  .mp-list { list-style:none; display:flex; flex-direction:column; gap:5px; }
+  .mp-list li {
+    display:flex; align-items:center; gap:6px 8px; flex-wrap:wrap; font-size:12.5px;
+    padding:5px 8px; background:var(--paper); border-left:3px solid var(--rule);
+  }
+  .mp-fx {
+    font-family:"Barlow Condensed",sans-serif; font-weight:600; text-transform:uppercase;
+    font-size:12px; letter-spacing:.02em; flex:none;
+  }
+  .mp-sel { flex:1; min-width:120px; color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; }
+  .pk-hit { color:var(--goals); font-style:normal; font-weight:700; }
+  .pk-miss { color:var(--hot); font-style:normal; font-weight:700; }
+  .pk-pend { color:var(--muted); font-style:normal; }
+  .mp-foot {
+    margin-top:9px; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+  }
+  .mp-foot b { color:var(--ink); }
+
+  .picks { margin-top:14px; border-top:1px solid var(--rule); padding-top:11px; }
+  .picks-h {
+    font-family:"Barlow Condensed",sans-serif; text-transform:uppercase;
+    letter-spacing:.06em; font-size:11px; color:var(--muted); margin-bottom:7px;
+  }
+  .picks-h span { color:var(--hot); }
+  .pkrow { display:flex; align-items:center; gap:9px; margin-bottom:5px; min-width:0; }
+  .pkrow > b {
+    font-family:"IBM Plex Mono",monospace; font-size:9.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.02em; color:var(--muted);
+    width:66px; flex:none;
+  }
+  .pkbtns { display:flex; gap:4px; flex:1; min-width:0; }
+  .pk {
+    flex:1 1 0; min-width:0; font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+    font-weight:600; text-transform:uppercase; letter-spacing:.01em; cursor:pointer;
+    background:var(--paper); color:var(--ink); border:1px solid var(--rule);
+    padding:5px 2px; text-align:center; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .pk-note { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .pk:hover:not(:disabled) { border-color:var(--ink); }
+  .pk.on { background:var(--goals); border-color:var(--goals); color:#fff; }
+  .pk:disabled { opacity:.4; cursor:default; }
+  .picks--locked .picks-h { color:var(--hot); }
+
+  .modal {
+    position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.6); padding:20px;
+  }
+  .modal[hidden] { display:none; }
+  .nv[hidden] { display:none; }
+  .modal-box {
+    background:var(--paper); border:1px solid var(--ink); max-width:400px; width:100%;
+    padding:22px 22px 20px; position:relative;
+  }
+  .modal-box.lb { max-width:460px; }
+  .modal-x {
+    position:absolute; top:8px; right:10px; background:none; border:0; cursor:pointer;
+    font-size:22px; line-height:1; color:var(--muted);
+  }
+  .modal-box h3 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:20px;
+    text-transform:uppercase; letter-spacing:.02em; margin-bottom:8px;
+  }
+  .modal-box p { font-size:12.5px; color:var(--muted); line-height:1.5; }
+  #name-input, .modal-in {
+    width:100%; margin:14px 0 0; padding:10px 12px; font:inherit; font-size:15px;
+    background:var(--card); border:1px solid var(--rule); color:var(--ink);
+  }
+  .modal-in + .modal-in { margin-top:8px; }
+  #name-input:focus, .modal-in:focus { outline:2px solid var(--goals); outline-offset:1px; }
+  .pin-wrap { position:relative; margin-top:8px; }
+  .pin-wrap .modal-in { margin-top:0; padding-right:56px; }
+  .pin-eye {
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:none; border:0; cursor:pointer; padding:3px 4px;
+    font-family:"IBM Plex Mono",monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.03em; color:var(--corners); text-decoration:underline;
+  }
+  .modal-go { width:100%; margin-top:12px; padding:10px; background:var(--goals); border-color:var(--goals); color:#fff; }
+  .linklike {
+    display:block; margin:10px 0 0; padding:0; background:none; border:0; cursor:pointer;
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--corners);
+    text-decoration:underline; letter-spacing:.02em;
+  }
+  .rc-box {
+    display:flex; align-items:center; gap:8px; margin:14px 0 4px; padding:12px;
+    background:var(--card); border:1px dashed var(--cards);
+  }
+  #rc-value {
+    flex:1; font-family:"IBM Plex Mono",monospace; font-size:16px; font-weight:600;
+    letter-spacing:.08em; color:var(--ink); word-break:break-all;
+  }
+  .lb-tabs { display:flex; gap:6px; margin:12px 0 10px; }
+  .lb-tab.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .lb-scroll { max-height:52vh; overflow-y:auto; border:1px solid var(--rule); }
+  #lb-body { width:100%; border-collapse:collapse; font-family:"IBM Plex Mono",monospace; font-size:12px; }
+  #lb-body th {
+    text-align:left; font-size:9.5px; letter-spacing:.08em; color:var(--muted);
+    padding:7px 10px; border-bottom:1px solid var(--rule); position:sticky; top:0; background:var(--paper);
+  }
+  #lb-body td { padding:7px 10px; border-bottom:1px solid var(--rule-soft); font-variant-numeric:tabular-nums; }
+  #lb-body td:nth-child(3) { font-weight:600; color:var(--ink); }
+  #lb-body tr.me td { background:var(--card); color:var(--goals); font-weight:600; }
+  .lb-empty { color:var(--muted); text-align:center; }
+  .lb-note { margin-top:10px; font-size:11px !important; }
+  .lb-prizes {
+    margin-top:12px; padding:10px 12px; border:1px solid var(--cards);
+    display:flex; flex-direction:column; gap:3px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+  }
+  .lb-prizes b {
+    font-family:"Barlow Condensed",sans-serif; font-size:12px; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--muted); margin-bottom:3px;
+  }
+  .lb-prizes span { color:var(--ink); }
+
+  .mp-ca {
+    display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin-bottom:9px;
+    font-family:"IBM Plex Mono",monospace; font-size:10px;
+  }
+  .mp-ca span { text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .mp-ca a { color:var(--ink); word-break:break-all; text-decoration:none; border-bottom:1px solid var(--rule); }
+  .mp-note {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.03em;
+    text-transform:uppercase; color:var(--warn); border:1px solid var(--warn);
+    padding:6px 9px; margin-bottom:11px; line-height:1.5;
+  }
+  .mp-imp { color:#ab47bc; font-weight:700; }
+  .mp-wallet {
+    display:flex; align-items:center; flex-wrap:wrap; gap:6px 9px; margin-bottom:10px;
+    font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+  }
+  .mp-wallet b { color:var(--ink); }
+  .mp-wallet.linked { color:var(--goals); }
+  #wl-connect, #wl-disconnect, #wl-signin, #wl-account, .modal-go2, #lb-open, .mp-copy, #wl-signout, #wl-pin, #wl-recovery {
+    font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.04em; cursor:pointer;
+    background:#ab47bc; color:#fff; border:1px solid #ab47bc; padding:5px 11px;
+  }
+  #wl-connect:hover, #wl-disconnect:hover, #wl-signin:hover, #wl-account:hover, #lb-open:hover, .mp-copy:hover, #wl-signout:hover, #wl-pin:hover, #wl-recovery:hover {
+    background:#9036a3; border-color:#9036a3;
+  }
+  .modal-go2 { width:100%; margin-top:8px; padding:9px; font-size:12px; }
+  #wl-signout, #wl-pin, #wl-recovery { font-size:9px; padding:3px 8px; }
+  .mp-copy { font-size:10px; padding:3px 9px; }
+  .name-or {
+    text-align:center; font-size:10.5px; color:var(--muted); text-transform:uppercase;
+    letter-spacing:.05em; margin:14px 0 8px;
+  }
+  .name-err { color:var(--hot); font-size:12px !important; margin:6px 0 10px; line-height:1.45; }
+  .name-err:empty { display:none; }
+  #wl-connect.wl-change, #wl-disconnect.wl-change { font-size:9px; padding:3px 8px; }
+  .mp-pay {
+    margin-top:11px; font-family:"IBM Plex Mono",monospace; font-size:9.5px;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+    background:none; border:0; border-bottom:1px dotted var(--rule); cursor:pointer; padding:0 0 1px;
+  }
+  #pay-body td.pay-w { font-size:10px; word-break:break-all; max-width:170px; }
+  #pay-body td.pay-w em { color:var(--muted); }
+  .pay-json {
+    width:100%; margin-top:10px; font-family:"IBM Plex Mono",monospace; font-size:10px;
+    background:var(--card); border:1px solid var(--rule); color:var(--ink); padding:8px; resize:vertical;
+  }
+
+  .ucl { margin-top:36px; padding-top:18px; border-top:3px double var(--ink); }
+  .ucl-head { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; }
+  .ucl-head h2 {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:22px;
+    text-transform:uppercase; letter-spacing:.02em;
+  }
+  .ucl-rate {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .ucl-key { font-size:12.5px; color:var(--muted); line-height:1.5; margin:8px 0 16px; }
+  .ucl-key b { color:var(--ink); }
+  .ucl-fx {
+    background:var(--card); border:1px solid var(--rule); border-left:3px solid var(--corners);
+    padding:11px 13px; margin-bottom:9px;
+  }
+  .ucl-fx--top { border-left-color:var(--cards); }
+  .ucl-fh {
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    flex-wrap:wrap; margin-bottom:8px;
+  }
+  .ucl-name {
+    font-family:"Barlow Condensed",sans-serif; font-weight:700; text-transform:uppercase;
+    font-size:16px; letter-spacing:.02em;
+  }
+  .ucl-name i { color:var(--muted); font-style:normal; font-weight:400; }
+  .ucl-meta {
+    font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .ucl-legs { display:flex; flex-direction:column; gap:5px; }
+  .ucl-l {
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px; display:flex; align-items:center;
+    gap:8px; flex-wrap:wrap; padding:5px 8px; background:var(--paper); border-left:3px solid var(--rule);
+  }
+  .ucl-l b {
+    min-width:56px; text-transform:uppercase; font-size:9.5px; letter-spacing:.05em; color:var(--muted);
+  }
+  .ucl-p { font-weight:700; color:var(--ink); }
+  .ucl-m { color:var(--muted); font-size:10px; }
+  .ucl-x { color:var(--goals); font-style:normal; font-weight:600; font-size:10px; text-transform:uppercase; }
+  .ucl-x--red { color:var(--hot); }
+  .ucl-note { margin-top:12px; border:1px solid var(--warn); background:var(--warn-bg); padding:9px 12px; }
+  .ucl-note summary {
+    font-family:"IBM Plex Mono",monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.04em; color:var(--warn); cursor:pointer;
+  }
+  .ucl-note ul { margin:8px 0 0 16px; display:flex; flex-direction:column; gap:6px; }
+  .ucl-note li { font-size:12px; line-height:1.5; color:var(--ink); }
+  .ucl-note li b { color:var(--ink); }
+
+  @media (max-width:520px) {
+    .callouts { grid-template-columns:1fr; }
+    .line { grid-template-columns:44px 1fr; gap:12px; }
+  }
+</style>
+<div class="sheet">
+  <p class="fresh-note">Rebuilt on every visit. When this bar turns orange the page
+  has been open 15+ minutes &mdash; tap Refresh for the latest numbers.</p>
+  <div class="freshbar" data-built="2026-09-15T11:36:11+00:00">
+    <span class="freshbar-age">Updated just now</span>
+    <button type="button" class="freshbar-btn"
+      onclick="location.replace(location.pathname + '?t=' + Date.now())">&#8635; Refresh</button>
+  </div>
+  <header class="masthead">
+    <h1>Weekend Coupon</h1>
+    <p class="tagline">Can you beat the bot?</p>
+    <div class="issue"><span>Champions League</span><span><b>Midweek</b></span><span>Built Tue 15 Sep 2026, 12:36</span><span>Ranked by juice score</span></div>
+  </header>
+  <nav class="pgnav"><a class="pgnav-t" href="/">Premier League</a><a class="pgnav-t on" href="/champions-league">Champions League</a></nav>
+  
+  
+  
+  
+  <section id="mypicks" class="mypicks" hidden></section>
+  
+  <section class="ucl"><p class="ucl-key">No Champions League games in the next week. This page fills in when the midweek fixtures come round &mdash; the <a href="/">Premier League sheet</a> is live as always.</p></section>
+  <script>
+  (function () {
+    var el = document.querySelector('.freshbar');
+    if (!el) return;
+    var t = Date.parse(el.getAttribute('data-built'));
+    if (isNaN(t)) return;
+    var out = el.querySelector('.freshbar-age');
+    var STALE = 900;
+    function tick() {
+      var s = Math.max(0, (Date.now() - t) / 1000), txt;
+      if (s < 60) txt = 'just now';
+      else if (s < 3600) txt = Math.floor(s / 60) + ' min ago';
+      else if (s < 86400) txt = Math.floor(s / 3600) + 'h ago';
+      else txt = Math.floor(s / 86400) + 'd ago';
+      var stale = s > STALE;
+      el.classList.toggle('freshbar--stale', stale);
+      out.textContent = 'Updated ' + txt + (stale ? ' \u2014 tap refresh' : '');
+    }
+    tick();
+    setInterval(tick, 30000);
+  })();
+
+  (function () {
+    var btn = document.getElementById('sort-toggle');
+    var main = document.querySelector('.sheet main');
+    if (!btn || !main) return;
+    var LS = 'coupon_sort';
+    var cards = [].slice.call(main.querySelectorAll('.line'));
+    var juice = cards.slice();
+    var kickoff = cards.slice().sort(function (a, b) {
+      return Date.parse(a.dataset.ko) - Date.parse(b.dataset.ko);
+    });
+    function apply(mode) {
+      (mode === 'kickoff' ? kickoff : juice).forEach(function (c) { main.appendChild(c); });
+      btn.dataset.mode = mode;
+      btn.textContent = mode === 'kickoff' ? 'Order: kickoff time' : 'Order: strongest first';
+      try { localStorage.setItem(LS, mode); } catch (e) {}
+    }
+    btn.addEventListener('click', function () {
+      apply(btn.dataset.mode === 'kickoff' ? 'juice' : 'kickoff');
+    });
+    var saved;
+    try { saved = localStorage.getItem(LS); } catch (e) {}
+    if (saved === 'kickoff') apply('kickoff');
+  })();
+  </script>
+
+  <div class="modal" id="name-modal" hidden>
+    <div class="modal-box">
+      <button class="modal-x" data-close aria-label="Close">&times;</button>
+
+      <div class="nv nv-new">
+        <h3>Create an account</h3>
+        <p>Pick a name and a PIN. You need the PIN to sign in on another phone or
+           after signing out &mdash; so pick one you will remember.</p>
+        <input id="name-input" class="modal-in" maxlength="20" placeholder="username (e.g. GoonerLewis)" autocomplete="off">
+        <div class="pin-wrap">
+          <input id="name-pin" class="modal-in" type="password" inputmode="numeric" maxlength="6" placeholder="choose a 4 to 6 digit PIN" autocomplete="off">
+          <button type="button" class="pin-eye" data-for="name-pin">show</button>
+        </div>
+        <p id="name-err" class="name-err"></p>
+        <button class="modal-go" id="name-go">Create account</button>
+        <div class="name-or">already played?</div>
+        <button class="modal-go2" id="to-signin">Sign in with username + PIN</button>
+        <button class="modal-go2" id="name-signin">Sign in with Phantom</button>
+      </div>
+
+      <div class="nv nv-signin" hidden>
+        <h3>Sign in</h3>
+        <p>Enter the username and PIN you picked when you created the account.</p>
+        <input id="si-name" class="modal-in" maxlength="20" placeholder="your username" autocomplete="off">
+        <div class="pin-wrap">
+          <input id="si-pin" class="modal-in" type="password" inputmode="numeric" maxlength="6" placeholder="your PIN" autocomplete="off">
+          <button type="button" class="pin-eye" data-for="si-pin">show</button>
+        </div>
+        <p id="si-err" class="name-err"></p>
+        <button class="modal-go" id="si-go">Sign in</button>
+        <button class="linklike" id="to-recover">Forgot your PIN?</button>
+        <div class="name-or">&nbsp;</div>
+        <button class="modal-go2" id="to-new">Create a new account instead</button>
+      </div>
+
+      <div class="nv nv-recover" hidden>
+        <h3>Reset your PIN</h3>
+        <p>Enter the recovery code you saved when you created the account.</p>
+        <input id="rc-name" class="modal-in" maxlength="20" placeholder="your username" autocomplete="off">
+        <input id="rc-code" class="modal-in" maxlength="16" placeholder="recovery code" autocomplete="off">
+        <div class="pin-wrap">
+          <input id="rc-pin" class="modal-in" type="password" inputmode="numeric" maxlength="6" placeholder="new 4 to 6 digit PIN" autocomplete="off">
+          <button type="button" class="pin-eye" data-for="rc-pin">show</button>
+        </div>
+        <p id="rc-err" class="name-err"></p>
+        <button class="modal-go" id="rc-go">Reset PIN</button>
+        <button class="linklike" id="rc-back">&larr; back</button>
+      </div>
+
+      <div class="nv nv-code" hidden>
+        <h3>Save your recovery code</h3>
+        <p>This is the <b>only</b> way back in if you forget your PIN and have not
+           linked a wallet. Screenshot it or write it down now &mdash; you will not
+           see it again.</p>
+        <div class="rc-box"><code id="rc-value"></code><button type="button" class="mp-copy" id="rc-copy">copy</button></div>
+        <button class="modal-go" id="rc-done">I have saved it</button>
+      </div>
+
+      <div class="nv nv-changepin" hidden>
+        <h3>Change your PIN</h3>
+        <div class="pin-wrap">
+          <input id="cp-old" class="modal-in" type="password" inputmode="numeric" maxlength="6" placeholder="current PIN" autocomplete="off">
+          <button type="button" class="pin-eye" data-for="cp-old">show</button>
+        </div>
+        <div class="pin-wrap">
+          <input id="cp-new" class="modal-in" type="password" inputmode="numeric" maxlength="6" placeholder="new 4 to 6 digit PIN" autocomplete="off">
+          <button type="button" class="pin-eye" data-for="cp-new">show</button>
+        </div>
+        <p id="cp-err" class="name-err"></p>
+        <button class="modal-go" id="cp-go">Change PIN</button>
+        <button class="linklike" id="cp-cancel">cancel</button>
+      </div>
+
+      <div class="nv nv-getcode" hidden>
+        <h3>Get a recovery code</h3>
+        <p>Enter your PIN and we will show you a fresh recovery code to save.</p>
+        <div class="pin-wrap">
+          <input id="gc-pin" class="modal-in" type="password" inputmode="numeric" maxlength="6" placeholder="your PIN" autocomplete="off">
+          <button type="button" class="pin-eye" data-for="gc-pin">show</button>
+        </div>
+        <p id="gc-err" class="name-err"></p>
+        <button class="modal-go" id="gc-go">Show my recovery code</button>
+        <button class="linklike" id="gc-cancel">cancel</button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal" id="lb-modal" hidden>
+    <div class="modal-box lb">
+      <button class="modal-x" data-close aria-label="Close">&times;</button>
+      <h3>Leaderboard</h3>
+      <div class="lb-tabs">
+        <button class="lb-tab on" data-tab="weekend">This weekend</button>
+        <button class="lb-tab" data-tab="season">All season</button>
+      </div>
+      <div class="lb-scroll"><table id="lb-body"></table></div>
+      <div class="lb-prizes">
+        <b>End-of-season prizes</b>
+        <span>&#129351; 1st &mdash; 1,000,000 SSB</span>
+        <span>&#129352; 2nd &mdash; 500,000 SSB</span>
+        <span>&#129353; 3rd &mdash; 250,000 SSB</span>
+      </div>
+      <p class="lb-note">1 point per correct prediction &middot; points convert to SSB prizes at 100 SSB per point &middot; prizes distributed weekly. Predictions lock at kickoff.</p>
+    </div>
+  </div>
+
+  <div class="modal" id="pay-modal" hidden>
+    <div class="modal-box lb">
+      <button class="modal-x" data-close aria-label="Close">&times;</button>
+      <h3>Payout sheet</h3>
+      <div class="lb-scroll"><table id="pay-body"></table></div>
+      <p class="lb-note">Points convert to SSB prizes at 100 SSB per point. Prizes are distributed weekly.</p>
+      <textarea id="pay-json" class="pay-json" readonly rows="4" aria-label="Payout data as JSON"></textarea>
+    </div>
+  </div>
+
+  <script id="coupon-cfg" type="application/json">{"supaUrl": "https://hsccirgnwfwxccwjmgjf.supabase.co", "supaKey": "sb_publishable_TijbYc997ZRx6yGvP4qHOw_O34Qmrqn", "ssb": {"ticker": "SSB", "perPoint": 100, "mint": "EFhEV39xNWtudvMszXHkk6aZVQzyXZPwefEDxpoXcSK2", "payout": "Dm3n3syehNvzQhM6CE85euYggFEdgvNQjmZoCQ6K8sir", "weeklyCap": 200000}, "adminHash": "6e44a88b2d6e60b678a76d5ca9669439af90ba0140b5223c115a6803c94c789a", "fixtures": [], "results": {}, "standings": {"weekend": [], "season": [{"name": "Weekend Coupon", "pts": 133, "graded": 200}, {"name": "HnLkicin'it", "pts": 88, "graded": 139}, {"name": "Yo", "pts": 86, "graded": 135}, {"name": "Lglondon", "pts": 80, "graded": 135}, {"name": "Steveo173", "pts": 52, "graded": 88}, {"name": "Armz2000", "pts": 40, "graded": 60}]}}</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"></script>
+  <script>
+(function () {
+  var cfgEl = document.getElementById('coupon-cfg');
+  var cfg; try { cfg = JSON.parse(cfgEl.textContent); } catch (e) { return; }
+  var panel = document.getElementById('mypicks');
+  var sb = (window.supabase && cfg.supaUrl)
+    ? window.supabase.createClient(cfg.supaUrl, cfg.supaKey) : null;
+  if (!cfg.fixtures || !cfg.fixtures.length) { return; }
+
+  var MARKETS = [
+    { k: 'goals_ou',   metric: 'goals',   label: 'Goals',   opts: [['over','Over'],['under','Under']] },
+    { k: 'corners_ou', metric: 'corners', label: 'Corners', opts: [['over','Over'],['under','Under']] },
+    { k: 'cards_ou',   metric: 'cards',   label: 'Cards',   opts: [['over','Over'],['under','Under']] },
+    { k: 'btts',       label: 'BTTS',    opts: [['yes','Yes'],['no','No']] },
+    { k: 'result',     label: 'Result',  opts: [['home','Home'],['draw','Draw'],['away','Away']] }
+  ];
+  function lineFor(fx, m) { return m.metric ? fx.lines[m.metric] : null; }
+  var LS_NAME = 'coupon_player';
+  var player = null;
+  try { player = localStorage.getItem(LS_NAME) || null; } catch (e) {}
+  var myPicks = {};
+
+  function fxById(id) { for (var i=0;i<cfg.fixtures.length;i++) if (cfg.fixtures[i].id===id) return cfg.fixtures[i]; }
+  function locked(fx) { return Date.now() >= Date.parse(fx.kickoff); }
+  function optLabel(m, sel) { for (var i=0;i<m.opts.length;i++) if (m.opts[i][0]===sel) return m.opts[i][1]; return sel; }
+  function marketBy(k) { for (var i=0;i<MARKETS.length;i++) if (MARKETS[i].k===k) return MARKETS[i]; }
+
+  function correct(fx, k, sel, r) {
+    if (k === 'goals_ou')   return sel === 'over' ? r.goals   > fx.lines.goals   : r.goals   < fx.lines.goals;
+    if (k === 'corners_ou') return sel === 'over' ? r.corners > fx.lines.corners : r.corners < fx.lines.corners;
+    if (k === 'cards_ou')   return sel === 'over' ? r.cards   > fx.lines.cards   : r.cards   < fx.lines.cards;
+    if (k === 'btts')       return sel === 'yes'  ? r.btts : !r.btts;
+    if (k === 'result')     { var d = r.h_goals - r.a_goals; return sel==='home'?d>0:sel==='draw'?d===0:d<0; }
+    return false;
+  }
+
+  function wkKey() { return 'coupon_picks_' + cfg.fixtures[0].kickoff.slice(0, 10); }
+  function saveLocal() { try { localStorage.setItem(wkKey(), JSON.stringify(myPicks)); } catch (e) {} }
+  function loadLocal() { try { myPicks = JSON.parse(localStorage.getItem(wkKey()) || '{}') || {}; } catch (e) { myPicks = {}; } }
+
+  function renderPicks() {
+    document.querySelectorAll('.picks').forEach(function (x) { x.remove(); });
+    cfg.fixtures.forEach(function (fx) {
+      var card = document.getElementById('fx-' + fx.id);
+      if (!card) return;
+      var host = card.querySelector('.body') || card;
+      var lk = locked(fx);
+      var mine = myPicks[fx.id] || {};
+      var rows = MARKETS.map(function (m) {
+        var ln = lineFor(fx, m);
+        var lt = ln ? ' ' + ln : '';
+        var btns = m.opts.map(function (o) {
+          var on = mine[m.k] === o[0] ? ' on' : '';
+          return '<button class="pk' + on + '" data-fx="' + fx.id + '" data-mk="' + m.k +
+                 '" data-sel="' + o[0] + '"' + (lk ? ' disabled' : '') + '>' + o[1] + '</button>';
+        }).join('');
+        return '<div class="pkrow"><b>' + m.label + lt + '</b><div class="pkbtns">' + btns + '</div></div>';
+      }).join('');
+      var hasPicks = Object.keys(mine).length > 0;
+      var w = document.createElement('div');
+      w.className = 'picks' + (lk ? ' picks--locked' : '');
+      if (lk && !hasPicks) {
+        w.innerHTML = '<div class="picks-h">Your predictions <span>&middot; locked</span></div>' +
+                      '<p class="pk-note">Kicked off &mdash; no prediction made on this one.</p>';
+      } else {
+        w.innerHTML = '<div class="picks-h">Your predictions' +
+          (lk ? ' <span>&middot; locked</span>' : '') + '</div>' +
+          '<p class="pk-note"><b>Once tapped, pick is live.</b> You can change ' +
+          'your mind any time before kickoff &mdash; the last one you tap is ' +
+          'the one that counts. Once the match kicks off, your picks lock in.</p>' +
+          rows;
+      }
+      host.appendChild(w);
+    });
+    document.querySelectorAll('.pk').forEach(function (b) {
+      b.addEventListener('click', function () { onPick(b); });
+    });
+  }
+
+  function onPick(btn) {
+    var fid = btn.dataset.fx, mk = btn.dataset.mk, sel = btn.dataset.sel;
+    var fx = fxById(fid);
+    if (!fx || locked(fx)) return;
+    if (!player) { openName(function () { onPick(btn); }); return; }
+    btn.parentNode.querySelectorAll('.pk').forEach(function (x) { x.classList.remove('on'); });
+    btn.classList.add('on');
+    (myPicks[fid] = myPicks[fid] || {})[mk] = sel;
+    saveLocal();
+    renderMine();
+    if (sb) sb.from('coupon_picks').insert({
+      player: player, fixture_id: fid, market: mk, selection: sel, kickoff: fx.kickoff
+    }).then(function (r) { if (r && r.error) console.warn('pick save failed', r.error); });
+  }
+
+  function renderMine() {
+    if (!panel) return;
+    var items = [], pts = 0, settled = 0, n = 0;
+    cfg.fixtures.forEach(function (fx) {
+      var mine = myPicks[fx.id]; if (!mine) return;
+      var res = cfg.results[fx.id];
+      Object.keys(mine).forEach(function (mk) {
+        n++;
+        var m = marketBy(mk), sel = mine[mk], ln = lineFor(fx, m);
+        var lab = m.label + (ln ? ' ' + ln : '') + ' · ' + optLabel(m, sel);
+        var mark = '<i class="pk-pend">&middot;</i>';
+        if (res) {
+          settled++;
+          var ok = correct(fx, mk, sel, res);
+          if (ok) pts++;
+          mark = ok ? '<i class="pk-hit">&#10003;</i>' : '<i class="pk-miss">&#10007;</i>';
+        }
+        items.push('<li><span class="mp-fx">' + fx.home + ' v ' + fx.away +
+                   '</span><span class="mp-sel">' + lab + '</span>' + mark + '</li>');
+      });
+    });
+    var tk = cfg.ssb ? cfg.ssb.ticker : 'pts';
+    var per = cfg.ssb ? cfg.ssb.perPoint : 1;
+    var WEEKLY_CAP = (cfg.ssb && cfg.ssb.weeklyCap) || 200000;
+    var body = items.length
+      ? '<ul class="mp-list">' + items.join('') + '</ul>' +
+        '<div class="mp-foot"><b>' + pts + ' pt' + (pts === 1 ? '' : 's') + '</b> = ' +
+        (pts * per).toLocaleString() + ' ' + tk + ' &middot; ' + settled + ' of ' + n + ' settled</div>'
+      : '<p class="mp-empty">Tap the prediction buttons on any fixture below to start.</p>';
+    panel.hidden = false;
+    panel.innerHTML =
+      '<div class="mp-h"><b>My predictions</b>' +
+      '<button type="button" id="lb-open">Leaderboard</button></div>' +
+      (player ? '<div class="mp-who">' + player +
+        ' <button type="button" id="wl-signout">sign out</button>' +
+        ' <button type="button" id="wl-pin">change PIN</button>' +
+        ' <button type="button" id="wl-recovery">recovery code</button></div>' : '') +
+      walletRow() +
+      (cfg.ssb && cfg.ssb.mint ?
+        '<div class="mp-ca"><span>$' + cfg.ssb.ticker + ' contract</span>' +
+        '<a href="https://solscan.io/token/' + cfg.ssb.mint + '" target="_blank" rel="noopener">' +
+        cfg.ssb.mint + '</a>' +
+        '<button type="button" class="mp-copy" data-ca="' + cfg.ssb.mint + '">copy</button></div>' : '') +
+      (cfg.ssb && cfg.ssb.payout ?
+        '<div class="mp-ca"><span>Official payout wallet</span>' +
+        '<a href="https://solscan.io/account/' + cfg.ssb.payout + '" target="_blank" rel="noopener">' +
+        cfg.ssb.payout + '</a>' +
+        '<button type="button" class="mp-copy" data-ca="' + cfg.ssb.payout + '">copy</button></div>' : '') +
+      '<div class="mp-note">' + (cfg.ssb ? cfg.ssb.ticker : 'Token') +
+      ' rewards are only ever sent <b>from</b> that address, straight <b>to</b> the wallet ' +
+      'you linked. We will never DM you, ask for your seed phrase or private key, or ask ' +
+      'you to send SOL/SSB to unlock a payout &mdash; anyone who does is scamming you.<br>' +
+      'Weekly payouts are capped at <b>' + WEEKLY_CAP.toLocaleString() + ' ' +
+      (cfg.ssb ? cfg.ssb.ticker : 'SSB') + '</b> total. If a week goes over that, ' +
+      "that week's payout is held for a manual check before anything is sent &mdash; " +
+      'you have not lost your points.<br>' +
+      'The ' + (cfg.ssb ? cfg.ssb.ticker : 'SSB') + ' amount paid per point may be ' +
+      '<b>lowered</b> as the game grows &mdash; the weekly pool is fixed, so the more ' +
+      'players share it, the less each point is worth.<br>' +
+      '<b class="mp-imp">Important:</b> no tokens are being sent yet. We are taking proper advice ' +
+      'before any SSB goes out, so payouts are paused. Your points and leaderboard ' +
+      'place are safe and carry over.</div>' +
+      body +
+      '<button type="button" class="mp-pay" id="pay-open">Payout sheet</button>';
+    var lb = document.getElementById('lb-open');
+    if (lb) lb.addEventListener('click', openLB);
+    var wc = document.getElementById('wl-connect');
+    if (wc) wc.addEventListener('click', linkWallet);
+    var wd = document.getElementById('wl-disconnect');
+    if (wd) wd.addEventListener('click', disconnectWallet);
+    var si = document.getElementById('wl-signin');
+    if (si) si.addEventListener('click', signInWithWallet);
+    var ac = document.getElementById('wl-account');
+    if (ac) ac.addEventListener('click', function () { openName(); });
+    var so = document.getElementById('wl-signout');
+    if (so) so.addEventListener('click', signOut);
+    var pn = document.getElementById('wl-pin');
+    if (pn) pn.addEventListener('click', changePin);
+    var rv = document.getElementById('wl-recovery');
+    if (rv) rv.addEventListener('click', newRecoveryCode);
+    var po = document.getElementById('pay-open');
+    if (po) po.addEventListener('click', openPayout);
+    panel.querySelectorAll('.mp-copy').forEach(function (cp) {
+      cp.addEventListener('click', function () {
+        (navigator.clipboard ? navigator.clipboard.writeText(cp.dataset.ca) : Promise.reject())
+          .then(function () {
+            cp.textContent = 'copied';
+            setTimeout(function () { cp.textContent = 'copy'; }, 1500);
+          }).catch(function () {});
+      });
+    });
+  }
+
+  /* ---- Phantom wallet ---- */
+  var LS_WALLET = 'coupon_wallet';
+  var wallet = null;
+  try { wallet = localStorage.getItem(LS_WALLET) || null; } catch (e) {}
+
+  function shortW(w) { return w.slice(0, 4) + '…' + w.slice(-4); }
+  function walletRow() {
+    var tk = cfg.ssb ? cfg.ssb.ticker : 'the token';
+    if (!player) {
+      return '<div class="mp-wallet">' +
+             '<button type="button" id="wl-account">Create account / sign in with PIN</button>' +
+             '<button type="button" id="wl-signin">Sign in with Phantom</button>' +
+             '<span>new here? tap Create account. Coming back? use your PIN, or your linked wallet.</span></div>';
+    }
+    if (wallet) {
+      return '<div class="mp-wallet linked">Wallet <b>' + shortW(wallet) +
+             '</b> linked <button type="button" id="wl-disconnect" class="wl-change">disconnect wallet</button></div>';
+    }
+    return '<div class="mp-wallet"><button type="button" id="wl-connect">Connect Phantom</button>' +
+           '<span>link a wallet to get ' + tk + ' payouts</span></div>';
+  }
+
+  function signOut() {
+    try {
+      localStorage.removeItem(LS_NAME);
+      localStorage.removeItem(LS_WALLET);
+      localStorage.removeItem(wkKey());
+    } catch (e) {}
+    if (window.solana && window.solana.disconnect) {
+      try { window.solana.disconnect(); } catch (e) {}
+    }
+    player = null;
+    wallet = null;
+    sessionPin = null;
+    myPicks = {};
+    renderPicks();
+    renderMine();
+  }
+
+  function disconnectWallet() {
+    wallet = null;
+    try { localStorage.removeItem(LS_WALLET); } catch (e) {}
+    try {
+      localStorage.removeItem('phantom_dl_sk');
+      localStorage.removeItem('phantom_dl_intent');
+    } catch (e) {}
+    if (window.solana && window.solana.disconnect) {
+      try { window.solana.disconnect(); } catch (e) {}
+    }
+    renderMine();
+  }
+
+  function hasInjectedPhantom() { return !!(window.solana && window.solana.isPhantom); }
+
+  /* ---- base58 (for the Phantom mobile deep-link handshake) ---- */
+  var B58A = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  function b58enc(bytes) {
+    var d = [], s = '', i, j, c;
+    for (i = 0; i < bytes.length; i++) {
+      c = bytes[i];
+      for (j = 0; j < d.length; j++) { c += d[j] << 8; d[j] = c % 58; c = (c / 58) | 0; }
+      while (c) { d.push(c % 58); c = (c / 58) | 0; }
+    }
+    for (i = 0; i < bytes.length && bytes[i] === 0; i++) s += '1';
+    for (i = d.length - 1; i >= 0; i--) s += B58A[d[i]];
+    return s;
+  }
+  function b58dec(str) {
+    var d = [], b = [], i, j, c;
+    for (i = 0; i < str.length; i++) {
+      c = B58A.indexOf(str[i]); if (c < 0) return null;
+      for (j = 0; j < d.length; j++) { c += d[j] * 58; d[j] = c & 255; c >>= 8; }
+      while (c) { d.push(c & 255); c >>= 8; }
+    }
+    for (i = 0; i < str.length && str[i] === '1'; i++) b.push(0);
+    for (i = d.length - 1; i >= 0; i--) b.push(d[i]);
+    return new Uint8Array(b);
+  }
+
+  /* ---- Phantom mobile deep-link ---- */
+  var DL_SK = 'phantom_dl_sk', DL_INTENT = 'phantom_dl_intent';
+  var pendingLinkAddr = null;
+
+  function dlConnect(intent) {
+    if (!window.nacl) { alert('Could not load the wallet library. Check your connection and try again.'); return; }
+    var kp = nacl.box.keyPair();
+    try {
+      localStorage.setItem(DL_SK, b58enc(kp.secretKey));
+      localStorage.setItem(DL_INTENT, intent);
+    } catch (e) {}
+    var redirect = location.origin + location.pathname + '?phantom=connect';
+    var qs = 'dapp_encryption_public_key=' + b58enc(kp.publicKey) +
+             '&cluster=mainnet-beta&app_url=' + encodeURIComponent(location.origin) +
+             '&redirect_link=' + encodeURIComponent(redirect);
+    if (/android/i.test(navigator.userAgent)) {
+      // Android intent: force-open the Phantom app, else Play Store.
+      // (Samsung Internet often won't honour a plain universal link.)
+      var fb = encodeURIComponent('https://play.google.com/store/apps/details?id=app.phantom');
+      location.href = 'intent://phantom.app/ul/v1/connect?' + qs +
+        '#Intent;scheme=https;package=app.phantom;S.browser_fallback_url=' + fb + ';end';
+    } else {
+      location.href = 'https://phantom.app/ul/v1/connect?' + qs;
+    }
+  }
+
+  function handlePhantomReturn() {
+    var q = new URLSearchParams(location.search);
+    if (q.get('phantom') !== 'connect') return;
+    history.replaceState(null, '', location.origin + location.pathname);
+    var skStr = '', intent = 'signin';
+    try {
+      skStr = localStorage.getItem(DL_SK) || '';
+      intent = localStorage.getItem(DL_INTENT) || 'signin';
+      localStorage.removeItem(DL_SK);
+      localStorage.removeItem(DL_INTENT);
+    } catch (e) {}
+    if (q.get('errorCode')) return;
+    var pk = q.get('phantom_encryption_public_key'),
+        nonce = q.get('nonce'), data = q.get('data');
+    if (!pk || !nonce || !data || !window.nacl) return;
+    var sk = skStr ? b58dec(skStr) : null;
+    if (!sk) {
+      alert('Almost there — finish signing in from the same browser you started in.');
+      return;
+    }
+    var dec;
+    try {
+      dec = nacl.box.open.after(b58dec(data), b58dec(nonce), nacl.box.before(b58dec(pk), sk));
+    } catch (e) { return; }
+    if (!dec) return;
+    var addr;
+    try { addr = JSON.parse(new TextDecoder().decode(dec)).public_key; } catch (e) { return; }
+    if (!addr) return;
+    if (intent === 'link') dlLink(addr); else dlSignIn(addr);
+  }
+
+  function dlSignIn(addr) {
+    if (!sb) return;
+    sb.from('coupon_wallets').select('player').eq('wallet', addr)
+      .order('created_at', { ascending: false }).limit(1).then(function (r) {
+        if (r && r.data && r.data[0]) {
+          wallet = addr;
+          try { localStorage.setItem(LS_WALLET, addr); } catch (e) {}
+          setPlayer(r.data[0].player);
+        } else {
+          alert('This wallet is not linked to an account yet.\nPick a name to start — it will be linked to this wallet.');
+          pendingLinkAddr = addr;
+          openName(function () { if (pendingLinkAddr) { dlLink(pendingLinkAddr); pendingLinkAddr = null; } });
+        }
+      });
+  }
+
+  function linkDone(r, addr) {
+    if (!r.error && r.data && r.data.ok) {
+      wallet = addr;
+      try { localStorage.setItem(LS_WALLET, addr); } catch (e) {}
+      renderMine();
+      return;
+    }
+    var reason = (r.data && r.data.reason) || 'err';
+    if (reason === 'bad') sessionPin = null;    // wrong PIN — prompt fresh next time
+    wallet = null;
+    try { localStorage.removeItem(LS_WALLET); } catch (e) {}
+    renderMine();
+    alert(
+      reason === 'wallet_taken'
+        ? 'That wallet is already linked to another account. Use "Sign in with Phantom" to get into that one.'
+      : reason === 'locked' ? 'Too many wrong PIN tries. Wait 15 minutes and try again.'
+      : reason === 'bad' ? 'That PIN is not right for "' + player + '".'
+      : reason === 'bad_wallet' ? 'That does not look like a valid wallet address.'
+      : 'Could not link the wallet. Try again in a moment.'
+    );
+  }
+
+  function dlLink(addr) {
+    if (!player) { pendingLinkAddr = addr; openName(function () { dlLink(addr); }); return; }
+    if (!sb) return;
+    var pin = askPin();
+    if (!pin) return;
+    sb.rpc('coupon_link_wallet', { p_name: player, p_pin: pin, p_wallet: addr })
+      .then(function (r) { linkDone(r, addr); });
+  }
+
+  function signInWithWallet() {
+    if (!hasInjectedPhantom()) { dlConnect('signin'); return; }
+    if (!sb) { alert('Connection lost — try again in a moment.'); return; }
+    window.solana.connect().then(function (res) {
+      var addr = res.publicKey.toString();
+      return sb.from('coupon_wallets').select('player')
+        .eq('wallet', addr).order('created_at', { ascending: false }).limit(1)
+        .then(function (r) {
+          if (r && r.data && r.data[0]) {
+            wallet = addr;
+            try { localStorage.setItem(LS_WALLET, addr); } catch (e) {}
+            setPlayer(r.data[0].player);
+          } else {
+            alert('This wallet is not linked to an account yet.\nPick a name to start — it will be linked to this wallet.');
+            openName(linkWallet);
+          }
+        });
+    }).catch(function (e) { console.warn('sign-in cancelled', e); });
+  }
+
+  function b64(bytes) {
+    var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+
+  function linkWallet() {
+    var prov = window.solana;
+    if (!prov || !prov.isPhantom) {
+      dlConnect('link');
+      return;
+    }
+    if (!player) { openName(linkWallet); return; }
+    var pin = askPin();
+    if (!pin) return;
+    prov.connect().then(function (res) {
+      var addr = res.publicKey.toString();
+      var msg = 'Weekend Coupon\nLink this wallet to player: ' + player + '\n' +
+                addr + '\n' + new Date().toISOString();
+      return prov.signMessage(new TextEncoder().encode(msg), 'utf8').then(function (sig) {
+        if (!sb) return;
+        sb.rpc('coupon_link_wallet', {
+          p_name: player, p_pin: pin, p_wallet: addr,
+          p_sig: b64(sig.signature), p_msg: msg
+        }).then(function (r) { linkDone(r, addr); });
+      });
+    }).catch(function (e) { console.warn('wallet connect cancelled', e); });
+  }
+
+  /* ---- payout sheet (key-gated) ---- */
+  function sha256Hex(str) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf),
+        function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function openPayout() {
+    var key;
+    try { key = localStorage.getItem('coupon_admin_key'); } catch (e) {}
+    if (!key) key = prompt('Payout key');
+    if (!key) return;
+    sha256Hex(key).then(function (h) {
+      if (h !== cfg.adminHash) { alert('Wrong key.'); return; }
+      try { localStorage.setItem('coupon_admin_key', key); } catch (e) {}
+      buildPayout();
+    });
+  }
+  function buildPayout() {
+    var modal = document.getElementById('pay-modal');
+    modal.hidden = false;
+    var tbody = document.getElementById('pay-body');
+    tbody.innerHTML = '<tr><td colspan="5">Loading&hellip;</td></tr>';
+    var per = cfg.ssb ? cfg.ssb.perPoint : 1;
+    var season = (cfg.standings && cfg.standings.season) || [];
+    var q = sb ? sb.from('coupon_wallets').select('player,wallet,created_at')
+                   .order('created_at', { ascending: false })
+               : Promise.resolve({ data: [] });
+    Promise.resolve(q).then(function (r) {
+      var wmap = {};
+      ((r && r.data) || []).forEach(function (w) { if (!wmap[w.player]) wmap[w.player] = w.wallet; });
+      var out = season.map(function (p) {
+        return { name: p.name, wallet: wmap[p.name] || '', season: p.pts,
+                 ssb: p.pts * per };
+      });
+      var head = '<tr><th>Player</th><th>Wallet</th><th>Season pts</th><th>' +
+                 (cfg.ssb ? cfg.ssb.ticker : 'Tokens') + '</th></tr>';
+      tbody.innerHTML = head + (out.length ? out.map(function (o) {
+        return '<tr><td>' + o.name + '</td><td class="pay-w">' +
+               (o.wallet || '<em>no wallet</em>') + '</td><td>' + o.season +
+               '</td><td>' + o.ssb.toLocaleString() + '</td></tr>';
+      }).join('') : '<tr><td colspan="4">No settled predictions yet.</td></tr>');
+      document.getElementById('pay-json').value = JSON.stringify(out, null, 2);
+    });
+  }
+
+  /* username modal — create account / sign in / recover, all PIN-based */
+  var nameModal = document.getElementById('name-modal');
+  var sessionPin = null;                 // the PIN for this session (never stored)
+  var pendingSignup = null;
+
+  function norm(s) { return (s || '').trim().replace(/\s+/g, ' ').slice(0, 20); }
+  function isPin(s) { return /^[0-9]{4,6}$/.test((s || '').trim()); }
+  function nv(view) {
+    ['new', 'signin', 'recover', 'code', 'changepin', 'getcode'].forEach(function (k) {
+      var el = nameModal.querySelector('.nv-' + k);
+      if (el) el.hidden = (k !== view);
+    });
+    nameModal.querySelectorAll('.pin-eye').forEach(function (b) {
+      var inp = document.getElementById(b.dataset.for);
+      if (inp) inp.type = 'password';
+      b.textContent = 'show';
+    });
+  }
+  function openNameView(view, focusId) {
+    nameModal.hidden = false;
+    nameModal._after = null;
+    nv(view);
+    ['cp-old', 'cp-new', 'gc-pin'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+    ['cp-err', 'gc-err'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.textContent = '';
+    });
+    var f = document.getElementById(focusId);
+    setTimeout(function () { if (f) f.focus(); }, 30);
+  }
+  function openName(after) {
+    nameModal.hidden = false;
+    nameModal._after = after || null;
+    nv('new');
+    ['name-input', 'name-pin', 'si-name', 'si-pin', 'rc-name', 'rc-code', 'rc-pin'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+    ['name-err', 'si-err', 'rc-err'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.textContent = '';
+    });
+    var i = document.getElementById('name-input');
+    setTimeout(function () { if (i) i.focus(); }, 30);
+  }
+
+  function askPin(msg) {
+    if (sessionPin) return sessionPin;
+    var p = prompt(msg || ('Enter the PIN for "' + player + '" to link this wallet:'));
+    if (p == null) return null;
+    sessionPin = p.trim();
+    return sessionPin;
+  }
+
+  function createAccount() {
+    var raw = norm(document.getElementById('name-input').value);
+    var pin = (document.getElementById('name-pin').value || '').trim();
+    var errEl = document.getElementById('name-err');
+    errEl.textContent = '';
+    if (raw.length < 2) { errEl.textContent = 'Pick a name of at least 2 characters.'; return; }
+    if (!isPin(pin)) { errEl.textContent = 'PIN must be 4 to 6 digits.'; return; }
+    if (!sb) { sessionPin = pin; setPlayer(raw); return; }
+    sb.rpc('coupon_signup', { p_name: raw, p_pin: pin }).then(function (r) {
+      if (r.error) {
+        var m = String((r.error && r.error.message) || '');
+        errEl.textContent = m.indexOf('taken') > -1
+          ? '"' + raw + '" is taken. If it\'s yours, use "Sign in with username + PIN".'
+          : m.indexOf('bad_pin') > -1 ? 'PIN must be 4 to 6 digits.'
+          : m.indexOf('bad_name') > -1 ? 'That name will not work — try another.'
+          : 'Could not create the account. Try again in a moment.';
+        return;
+      }
+      sessionPin = pin;
+      pendingSignup = raw;
+      var cv = document.getElementById('rc-value');
+      if (cv) cv.textContent = r.data;
+      nv('code');
+    });
+  }
+
+  function signInWithPin() {
+    var raw = norm(document.getElementById('si-name').value);
+    var pin = (document.getElementById('si-pin').value || '').trim();
+    var errEl = document.getElementById('si-err');
+    errEl.textContent = '';
+    if (raw.length < 2 || !pin) { errEl.textContent = 'Enter your username and PIN.'; return; }
+    if (!sb) { sessionPin = pin; setPlayer(raw); return; }
+    sb.rpc('coupon_signin', { p_name: raw, p_pin: pin }).then(function (r) {
+      if (r.error || !r.data || !r.data.ok) {
+        errEl.textContent = (r.data && r.data.reason === 'locked')
+          ? 'Too many wrong tries. Wait 15 minutes, then try again.'
+          : 'That username or PIN is not right.';
+        return;
+      }
+      sessionPin = pin;
+      setPlayer(raw);
+    });
+  }
+
+  function recoverPin() {
+    var raw = norm(document.getElementById('rc-name').value);
+    var code = (document.getElementById('rc-code').value || '').trim();
+    var pin = (document.getElementById('rc-pin').value || '').trim();
+    var errEl = document.getElementById('rc-err');
+    errEl.textContent = '';
+    if (raw.length < 2 || !code || !isPin(pin)) {
+      errEl.textContent = 'Fill all three in — the new PIN must be 4 to 6 digits.'; return;
+    }
+    if (!sb) return;
+    sb.rpc('coupon_recover', { p_name: raw, p_code: code, p_new_pin: pin }).then(function (r) {
+      if (r.error || !r.data || !r.data.ok) {
+        errEl.textContent = (r.data && r.data.reason === 'locked')
+          ? 'Too many wrong tries. Wait 15 minutes.'
+          : 'That recovery code does not match that username.';
+        return;
+      }
+      sessionPin = pin;
+      setPlayer(raw);
+    });
+  }
+
+  function changePin() {
+    if (!player || !sb) return;
+    openNameView('changepin', 'cp-old');
+  }
+  function doChangePin() {
+    var oldp = (document.getElementById('cp-old').value || '').trim();
+    var newp = (document.getElementById('cp-new').value || '').trim();
+    var errEl = document.getElementById('cp-err');
+    errEl.textContent = '';
+    if (!oldp || !isPin(newp)) {
+      errEl.textContent = 'Enter your current PIN and a new 4 to 6 digit PIN.'; return;
+    }
+    sb.rpc('coupon_set_pin', { p_name: player, p_old_pin: oldp, p_new_pin: newp })
+      .then(function (r) {
+        if (!r.error && r.data && r.data.ok) {
+          sessionPin = newp;
+          nameModal.hidden = true;
+          alert('PIN changed.');
+        } else {
+          errEl.textContent = (r.data && r.data.reason === 'locked')
+            ? 'Locked — too many wrong tries. Wait 15 minutes.'
+            : 'That current PIN is not right.';
+        }
+      });
+  }
+
+  function newRecoveryCode() {
+    if (!player || !sb) return;
+    openNameView('getcode', 'gc-pin');
+  }
+  function doGetCode() {
+    var pin = (document.getElementById('gc-pin').value || '').trim();
+    var errEl = document.getElementById('gc-err');
+    errEl.textContent = '';
+    if (!isPin(pin)) { errEl.textContent = 'Enter your PIN (4 to 6 digits).'; return; }
+    sb.rpc('coupon_new_recovery', { p_name: player, p_pin: pin }).then(function (r) {
+      if (r.error) {
+        var m = String((r.error && r.error.message) || '');
+        errEl.textContent = m.indexOf('locked') > -1 ? 'Too many wrong tries. Wait 15 minutes.'
+          : m.indexOf('bad') > -1 ? 'That PIN is not right.'
+          : 'Could not make a code. Try again in a moment.';
+        return;
+      }
+      sessionPin = pin;
+      pendingSignup = null;
+      var cv = document.getElementById('rc-value');
+      if (cv) cv.textContent = r.data;
+      nv('code');
+    });
+  }
+
+  function setPlayer(name) {
+    player = name;
+    try { localStorage.setItem(LS_NAME, name); } catch (e) {}
+    nameModal.hidden = true;
+    pendingSignup = null;
+    myPicks = {};
+    saveLocal();
+    renderPicks();
+    renderMine();
+    var f = nameModal._after; nameModal._after = null;
+    loadRemote().then(function () { renderPicks(); renderMine(); });
+    if (f) f();
+  }
+
+  function wire(id, ev, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener(ev, fn);
+  }
+  function enterKey(id, fn) {
+    wire(id, 'keydown', function (e) { if (e.key === 'Enter') fn(); });
+  }
+  wire('name-go', 'click', createAccount);
+  enterKey('name-input', createAccount); enterKey('name-pin', createAccount);
+  wire('si-go', 'click', signInWithPin);
+  enterKey('si-name', signInWithPin); enterKey('si-pin', signInWithPin);
+  wire('rc-go', 'click', recoverPin);
+  enterKey('rc-pin', recoverPin);
+  wire('cp-go', 'click', doChangePin);
+  enterKey('cp-old', doChangePin); enterKey('cp-new', doChangePin);
+  wire('gc-go', 'click', doGetCode);
+  enterKey('gc-pin', doGetCode);
+  wire('cp-cancel', 'click', function () { nameModal.hidden = true; });
+  wire('gc-cancel', 'click', function () { nameModal.hidden = true; });
+  wire('to-signin', 'click', function () { nv('signin'); var e = document.getElementById('si-name'); if (e) e.focus(); });
+  wire('to-new', 'click', function () { nv('new'); });
+  wire('to-recover', 'click', function () { nv('recover'); });
+  wire('rc-back', 'click', function () { nv('signin'); });
+  nameModal.querySelectorAll('.pin-eye').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var inp = document.getElementById(b.dataset.for);
+      if (!inp) return;
+      var hidden = inp.type === 'password';
+      inp.type = hidden ? 'text' : 'password';
+      b.textContent = hidden ? 'hide' : 'show';
+    });
+  });
+  wire('rc-done', 'click', function () {
+    if (pendingSignup) setPlayer(pendingSignup);
+    else nameModal.hidden = true;
+  });
+  wire('rc-copy', 'click', function () {
+    var v = (document.getElementById('rc-value') || {}).textContent || '';
+    var b = document.getElementById('rc-copy');
+    (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject())
+      .then(function () { b.textContent = 'copied'; setTimeout(function () { b.textContent = 'copy'; }, 1500); })
+      .catch(function () {});
+  });
+  var nameSignin = document.getElementById('name-signin');
+  if (nameSignin) nameSignin.addEventListener('click', signInWithWallet);
+
+  /* leaderboard modal */
+  function openLB() { document.getElementById('lb-modal').hidden = false; showLB('weekend'); }
+  function showLB(which) {
+    var s = (cfg.standings && cfg.standings[which]) || [];
+    var per = cfg.ssb ? cfg.ssb.perPoint : 1;
+    var tk = cfg.ssb ? cfg.ssb.ticker : 'Tokens';
+    var head = '<tr><th>#</th><th>Player</th><th>Pts</th><th>' + tk + '</th></tr>';
+    var body = s.length ? s.map(function (r, i) {
+      return '<tr class="' + (r.name === player ? 'me' : '') + '"><td>' + (i + 1) +
+             '</td><td>' + r.name + '</td><td>' + r.pts + '</td><td>' +
+             (r.pts * per).toLocaleString() + '</td></tr>';
+    }).join('') : '<tr><td colspan="4" class="lb-empty">No settled predictions yet.</td></tr>';
+    document.getElementById('lb-body').innerHTML = head + body;
+    document.querySelectorAll('.lb-tab').forEach(function (t) {
+      t.classList.toggle('on', t.dataset.tab === which);
+    });
+  }
+  document.querySelectorAll('.lb-tab').forEach(function (t) {
+    t.addEventListener('click', function () { showLB(t.dataset.tab); });
+  });
+  function closeModal(m) {
+    m.hidden = true;
+    if (m === nameModal && pendingSignup && !player) setPlayer(pendingSignup);
+  }
+  document.querySelectorAll('[data-close]').forEach(function (x) {
+    x.addEventListener('click', function () { closeModal(x.closest('.modal')); });
+  });
+  document.querySelectorAll('.modal').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) closeModal(m); });
+  });
+
+  function loadRemote() {
+    if (!sb || !player) return Promise.resolve();
+    var ids = cfg.fixtures.map(function (f) { return f.id; });
+    var p1 = sb.from('coupon_picks').select('fixture_id,market,selection,created_at')
+      .eq('player', player).in('fixture_id', ids)
+      .order('created_at', { ascending: true })
+      .then(function (r) {
+        if (!r || r.error || !r.data) return;
+        r.data.forEach(function (p) {
+          (myPicks[p.fixture_id] = myPicks[p.fixture_id] || {})[p.market] = p.selection;
+        });
+        saveLocal();
+      });
+    var p2 = sb.from('coupon_wallets').select('wallet,created_at')
+      .eq('player', player).order('created_at', { ascending: false }).limit(1)
+      .then(function (r) {
+        if (r && r.data && r.data[0]) {
+          wallet = r.data[0].wallet;
+          try { localStorage.setItem(LS_WALLET, wallet); } catch (e) {}
+        }
+      });
+    return Promise.all([p1, p2]);
+  }
+
+  function verifyPlayer() {
+    if (!sb || !player) return Promise.resolve();
+    return sb.from('coupon_players').select('name').eq('name', player).limit(1)
+      .then(function (r) {
+        if (r && !r.error && r.data && r.data.length === 0) {
+          // stored account no longer exists (e.g. a deleted test acct) — sign out
+          try {
+            localStorage.removeItem(LS_NAME);
+            localStorage.removeItem(LS_WALLET);
+            localStorage.removeItem(wkKey());
+          } catch (e) {}
+          player = null; wallet = null; myPicks = {};
+        }
+      });
+  }
+
+  loadLocal();
+  renderPicks();
+  renderMine();
+  handlePhantomReturn();
+  verifyPlayer().then(function () {
+    renderPicks();
+    renderMine();
+    return loadRemote();
+  }).then(function () { renderPicks(); renderMine(); });
+})();
+</script>
+
+  <nav class="pgnav"><a class="pgnav-t" href="/">Premier League</a><a class="pgnav-t on" href="/champions-league">Champions League</a></nav>
+
+  <footer class="colophon">
+    <p><b>What this is.</b> A free weekly prediction game built on a statistical
+    model with known blind spots. It's for entertainment — nothing here is
+    financial advice.</p>
+    <p style="margin-top:9px"><b>Reading the sheet.</b> Figures blend the 2025/26 full season with this
+    season so far — the new-season weight climbs to 50&#37; by gameweek 10. Goals come
+    from an attack-versus-defence strength model with a home tilt; corners sum each
+    side's 2025/26 corners-taken rate; cards sum each side's yellow-card rate. Ticks on
+    each meter mark the scoring bands. The juice score (0–100) weights goals 40,
+    cards 35, corners 25.</p>
+    <p style="margin-top:9px"><b>Last weekend.</b> The band takes the model's
+    prediction for each metric and checks whether it landed against what actually
+    happened (goals from the final score; corners and cards from ESPN's match
+    stats, which can lag a few hours). Predictions are recomputed from current
+    data, so it's a close guide to — not an exact replay of — what the sheet
+    showed before kickoff.</p>
+    <p style="margin-top:9px"><b>Not modelled:</b> the referee (the biggest card
+    swing), team news, form momentum, and weather.</p>
+    <p style="margin-top:9px"><b>For over-18s.</b> This is a free prediction game
+    &mdash; see our full terms.</p>
+  </footer>
+
+  <section class="sponsors" aria-label="Sponsors">
+    
+    <a class="sponsor" href="https://x.com/lglondoncrypto1" target="_blank" rel="noopener sponsored">
+      <img src="data:image/webp;base64,UklGRlgEAABXRUJQVlA4WAoAAAAQAAAATwAATwAAQUxQSBUAAAABUNC2DVP+pEvh7UREQj6+//sH8gEAVlA4IBwEAAAwGQCdASpQAFAAPmEqkUYkIqohKPSdUUAMCWkAEcF+lfuP5Dcullt9+/LfRUf2L8pctZ+i/6fRquIj/vP+A9hz+1f8r0pv9f7bvbp9Cf9H3Cv5N/V/94bJBr8oIXeDzM9m6nCzvrmw0snL4Ci8rhk+gFBuTw3D+AoFxiY7UhwzfSLBfj0RDLVi0SfJTBy93F2xZBrxcwg8uzEv/RJqpwU7I4pbLvz15inrMqGzVu9WzAihbxdQpW+pVdwVh7MP7fd7VwGbdvEmJ8m2KER9onQfXAAA/v8IuW3D9IVzYm+gzsitrMQn79u/2c+ODTWe/7dsLPcfCBLLvmFttvWtyHq+6UVAr06iuarCIA+z5ymRcpivksYpYwki36+VRPR9byXKF0XC2/8Lj8QxGoNWdtrCrshLFF4LX4xl5OANdC52RpxmGSd9rgT9YpO7Hs0qQ0Rx7ZlxAEZ5aydcUFNId73uc/b4ywHoMjKvmNprn1vMv8SuDp2I8xHmuTYvKm6AxUEbR6AqGAMKEnv5q8gTZgBw7im5JXUzv92alC+hdRHT1co8ng/xKc5niTgpInigB1ExOZVnLfvg16L0u0TrnRl46Flu7uz6FOuJ2UCtsa/rNexmbKGOISJiXxEgb8R77sfCcx2pV8t2PYoMKftKybJHqf15k+yccxs1YhFQDrdn0ufB+lbxJQBtuwajnZQKSiaz5p+w16mmRaLInXwdWmto6vEDn9aKkOlXNVYGEP7xlt7r483nvNuar6P34nHuhdewHoa00/XoaqXdPOKFEJbEzLOfoWUaJ2xeA+20W/tpRz6A4WlC7AZJZcDVUGFH9aGRPWYOduy7Z8iK+G04C61pFJjSnCSMFSjuGFDGpLbnxlqBk3YjprvtR7dH5Kjj7sZWL68ucHr70unEJ1f4jb+kDwVxz35MXn2n4C8oWrskyJO/h+qzRTfAj4b2B8YUzjkr0fvisH8yDr+jt5wapuiFPM39LRnJ7AG8n1V+1SLeG7OAzPDKxTryJMw/R4/KVPjyl9mGfLx5f043JRe7fgqyaOwUOdhAe/V/xzTok2cirb4ZTh/2FuXmDQn8UJqgrZ4uKDeDHsk84z4Yf5e3Ds3M/pDLJJL1f0CPTv+VN/++PDIJ8HPU+6e/5k8Vz9J5L33/KqRr2e/TXZd9acUFF/CzLtv+L3RB+eZVvm/kTh8MCEJrV2XofoNs2y+ueOCT/or+OYd+8ygUymRIBZSpPkDpcC48jiniPZ2kcD6PwKdkZuttZck3owyQun+Oku9SF9qzdjI1b0k4NIeshcr81H59/O8ckFRYEkjxBlh/PiiT3VcrL/9jJ5Y1FTx4bLWNzShWdqPvvKs+GcM/qStTGY+V0w//yYrwKcoku0M+bJ//Kv75YykA36IYQAAAAA==" alt="LG London Crypto logo" width="40" height="40" loading="lazy">
+      <span>
+        <em>Sponsored by</em>
+        <b>LG London Crypto</b>
+        <i>Follow on X</i>
+      </span>
+    </a>
+    <a class="sponsor" href="https://x.com/HnLkicin" target="_blank" rel="noopener sponsored">
+      <img src="data:image/webp;base64,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" alt="HnLkicinit logo" width="40" height="40" loading="lazy">
+      <span>
+        <em>Sponsored by</em>
+        <b>HnLkicinit</b>
+        <i>Follow on X</i>
+      </span>
+    </a>
+    <a class="sponsor" href="https://footballfanclubz.com" target="_blank" rel="noopener sponsored">
+      <img src="data:image/webp;base64,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" alt="Football Clubz logo" width="40" height="40" loading="lazy">
+      <span>
+        <em>Sponsored by</em>
+        <b>Football Clubz</b>
+        <i>Visit the site</i>
+      </span>
+    </a>
+  </section>
+  <p class="tg-line">Join our Telegram:
+    <a href="https://t.me/HnLkicinit" target="_blank" rel="noopener">t.me/HnLkicinit</a></p>
+</div>

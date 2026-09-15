@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.py": { "maxDuration": 30, "includeFiles": "{build,sponsors,paper}.py" },
+    "api/payout.py": { "maxDuration": 60, "includeFiles": "{build,sponsors,paper}.py" },
+    "api/picks.py": { "maxDuration": 30, "includeFiles": "{build,sponsors,paper}.py" },
+    "api/settle.py": { "maxDuration": 30, "includeFiles": "{build,sponsors,paper}.py" }
+  },
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/api/index", "schedule": "0 7 * * 5" },
+    { "path": "/api/payout", "schedule": "0 10 * * 4" },
+    { "path": "/api/settle", "schedule": "0 21 * * 5" },
+    { "path": "/api/settle", "schedule": "0 14 * * 6" },
+    { "path": "/api/settle", "schedule": "0 17 * * 6" },
+    { "path": "/api/settle", "schedule": "30 19 * * 6" },
+    { "path": "/api/settle", "schedule": "0 22 * * 6" },
+    { "path": "/api/settle", "schedule": "0 16 * * 0" },
+    { "path": "/api/settle", "schedule": "30 18 * * 0" },
+    { "path": "/api/settle", "schedule": "0 21 * * 0" },
+    { "path": "/api/settle", "schedule": "30 20 * * 1" },
+    { "path": "/api/settle", "schedule": "30 22 * * 1" },
+    { "path": "/api/settle", "schedule": "30 18 * * 2" },
+    { "path": "/api/settle", "schedule": "0 22 * * 2" },
+    { "path": "/api/settle", "schedule": "30 18 * * 3" },
+    { "path": "/api/settle", "schedule": "0 22 * * 3" }
+  ]
+}
