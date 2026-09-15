@@ -5,7 +5,7 @@
 
 create table if not exists public.coupon_paper_bets (
   id          uuid primary key default gen_random_uuid(),
-  comp        text not null check (comp in ('pl','ucl')),
+  comp        text not null check (comp in ('pl','ucl','rest')),
   round       text not null,                 -- e.g. 'pl:2026-09-12'
   bet_type    text not null check (bet_type in ('single','builder')),
   fixture_id  text not null,
@@ -23,6 +23,13 @@ create table if not exists public.coupon_paper_bets (
   placed_at   timestamptz not null default now(),
   settled_at  timestamptz
 );
+
+-- re-run safe: widen the comp check constraint on an existing table to allow
+-- the "rest of football" book (La Liga/Bundesliga/Serie A/Ligue 1/Championship/
+-- FA Cup/EFL Cup) added alongside pl/ucl.
+alter table public.coupon_paper_bets drop constraint if exists coupon_paper_bets_comp_check;
+alter table public.coupon_paper_bets add constraint coupon_paper_bets_comp_check
+  check (comp in ('pl','ucl','rest'));
 
 -- one bet per (comp, fixture, type, market, line) — makes the Friday/Thursday
 -- placement run idempotent (re-running never double-places).

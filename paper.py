@@ -25,12 +25,13 @@ from datetime import datetime, timedelta, timezone
 from build import (
     SUPA_URL, SUPA_KEY, compute_rows, fixtures, grade, suggest, team_blends,
     ucl_context, uk_now, weekend_fixtures, weekend_windows, _match_totals,
-    _ucl_scoreboard_events, _ucl_cache_get, _ucl_cache_put,
+    _ucl_scoreboard_events, _ucl_cache_get, _ucl_cache_put, rest_context,
 )
 
 _SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 
-STAKE = 10.0
+BOOKS = ("pl", "ucl", "rest")
+STAKES = {"pl": 10.0, "ucl": 10.0, "rest": 5.0}
 START_BANKROLL = 1000.0
 
 # Realistic-ish Premier League bookmaker prices. Keyed by the (metric, line)
@@ -87,7 +88,9 @@ def _fetch_odds(sport):
 
 def _real_odds(comp):
     """[(home_tokens, away_tokens, {(metric,line): price})] for upcoming games."""
-    events = _fetch_odds(_ODDS_SPORT.get(comp, ""))
+    if comp not in _ODDS_SPORT:   # e.g. "rest" - spans too many leagues for one sport key
+        return []
+    events = _fetch_odds(_ODDS_SPORT[comp])
     out = []
     for ev in events:
         prices = {}
@@ -186,7 +189,7 @@ def _rows_for(comp):
         (_, _), fx = weekend_fixtures(weekend_windows()[1])
         return [{"fx": r["fx"], "legs": r["legs"], "score": r["score"]}
                 for r in compute_rows(fx, blends)]
-    upcoming, _ = ucl_context()
+    upcoming, _ = ucl_context() if comp == "ucl" else rest_context()
     rows = [{"fx": u["fx"], "legs": suggest(u["x"]), "score": u["score"]}
             for u in upcoming]
     rows.sort(key=lambda r: r["score"], reverse=True)
@@ -220,7 +223,7 @@ def place(comp):
                 "fixture_id": f["id"], "fixture": _name(f), "kickoff": f["date"],
                 "market": leg["check"][0], "line": float(leg["check"][1]),
                 "leg_text": leg["text"], "legs": None,
-                "price": pr, "price_src": src, "stake": STAKE, "status": "pending",
+                "price": pr, "price_src": src, "stake": STAKES[comp], "status": "pending",
             })
 
     # one combined builder on the top-rated fixture of the round
@@ -247,7 +250,7 @@ def place(comp):
             "legs": [{"market": m, "line": l, "text": t}
                      for m, l, t, _, _ in top_priced],
             "price": round(combo, 2), "price_src": src,
-            "stake": STAKE, "status": "pending",
+            "stake": STAKES[comp], "status": "pending",
         })
 
     if not bets:
@@ -296,6 +299,14 @@ def _ucl_actuals():
     return out
 
 
+def _rest_actuals():
+    """Unlike _ucl_actuals (one cheap scoreboard call, always fetched fresh),
+    rest-of-football spans 7 competitions (~20s) - use the cached
+    rest_context() so settle() doesn't pay that cost on every cron tick."""
+    _, finished = rest_context()
+    return finished
+
+
 def _leg_ok(market, line, a):
     """grade() with a guard: missing corner data -> None (void), not a loss."""
     if a is None or not a.get("has_stats"):
@@ -312,7 +323,12 @@ def settle(comp):
 
     kickoffs = [b["kickoff"] for b in pending if b.get("kickoff")]
     try:
-        actuals = _pl_actuals(kickoffs) if comp == "pl" else _ucl_actuals()
+        if comp == "pl":
+            actuals = _pl_actuals(kickoffs)
+        elif comp == "ucl":
+            actuals = _ucl_actuals()
+        else:
+            actuals = _rest_actuals()
     except Exception as e:  # noqa: BLE001
         return {"comp": comp, "settled": 0, "error": f"{type(e).__name__}: {e}"}
 
@@ -370,6 +386,9 @@ def _maybe_settle_on_view():
                 return
         _ucl_cache_put("paper_settle", {"at": datetime.now(timezone.utc)
                                          .isoformat(timespec="seconds")})
+        # "rest" deliberately excluded here: unlike pl/ucl (one cheap scoreboard
+        # call each), a cache-miss rest_context() costs ~20s - fine on the
+        # 60s-budget Thursday payout cron, too slow to risk on a live page view.
         settle("pl")
         settle("ucl")
     except Exception:
@@ -391,10 +410,8 @@ def run_all(wipe=False):
             out["wipe"] = wipe_pending()
         except Exception as e:  # noqa: BLE001
             out["wipe"] = {"error": f"{type(e).__name__}: {e}"}
-    for step, fn, arg in (
-        ("settle_pl", settle, "pl"), ("settle_ucl", settle, "ucl"),
-        ("place_pl", place, "pl"), ("place_ucl", place, "ucl"),
-    ):
+    steps = [(f"settle_{c}", settle, c) for c in BOOKS] + [(f"place_{c}", place, c) for c in BOOKS]
+    for step, fn, arg in steps:
         try:
             out[step] = fn(arg)
         except Exception as e:  # noqa: BLE001
@@ -509,11 +526,11 @@ def generate_paper_html():
     else:
         err = ""
 
-    books = {c: _book([b for b in bets if b["comp"] == c]) for c in ("pl", "ucl")}
-    combined_pnl = round(books["pl"]["pnl"] + books["ucl"]["pnl"], 2)
+    books = {c: _book([b for b in bets if b["comp"] == c]) for c in BOOKS}
+    combined_pnl = round(sum(books[c]["pnl"] for c in BOOKS), 2)
 
     goals = {c: _slice([b for b in bets if b["comp"] == c], _GOALS_MARKETS)
-             for c in ("pl", "ucl")}
+             for c in BOOKS}
     goals_all = _slice(bets, _GOALS_MARKETS)
 
     metric_bars = _metric_bars(bets)
@@ -647,10 +664,9 @@ def generate_paper_html():
 body{{margin:0;background:#161616;color:#eee;font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif}}
 header{{padding:16px 20px;background:#111;border-bottom:1px solid #333}}
 h1{{margin:0;font-size:18px}}h1 span{{color:#ffb80c}}
-main{{max-width:900px;margin:0 auto;padding:20px;display:grid;gap:16px}}
+main{{max-width:1040px;margin:0 auto;padding:20px;display:grid;gap:16px}}
 .combined{{background:#1f1f1f;border:1px solid #333;border-radius:10px;padding:14px 16px}}
-.cards{{display:grid;gap:16px;grid-template-columns:1fr}}
-@media(min-width:680px){{.cards{{grid-template-columns:1fr 1fr}}}}
+.cards{{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
 .card{{background:#242424;border:1px solid #333;border-radius:10px;padding:16px}}
 h2{{margin:0 0 4px;font-size:14px;color:#9a9a9a;text-transform:uppercase;letter-spacing:.5px}}
 .big{{margin:2px 0;font-size:26px;font-weight:700}}
@@ -689,16 +705,17 @@ a{{color:#ffb80c}}
 <header><h1><span>Paper Account</span></h1></header>
 <main>
   {"<p class='down'>Could not load: " + err + "</p>" if err else ""}
-  <div class="combined">Combined P&amp;L across both books:
+  <div class="combined">Combined P&amp;L across all books:
     <b class="{'up' if combined_pnl >= 0 else 'down'}">{_fmt(combined_pnl)}</b>
     &nbsp;·&nbsp; started £{START_BANKROLL:,.0f} each &nbsp;·&nbsp;
     built {uk_now()}</div>
   <div class="cards">
     {card("Premier League", "pl")}
     {card("Champions League", "ucl")}
+    {card("Rest of Football", "rest")}
   </div>
   <section class="card">
-    <h2>Hit rate &mdash; singles, both books</h2>
+    <h2>Hit rate &mdash; singles, all books</h2>
     <p class="sub">{bars_total} settled single bets scored, bucketed by market.</p>
     <div class="bars">{bars}</div>
   </section>
@@ -709,6 +726,7 @@ a{{color:#ffb80c}}
     <tbody>
       {goals_row("Premier League", goals["pl"])}
       {goals_row("Champions League", goals["ucl"])}
+      {goals_row("Rest of Football", goals["rest"])}
       {goals_row("<b>Combined</b>", goals_all)}
     </tbody></table>
   </section>
@@ -720,8 +738,10 @@ a{{color:#ffb80c}}
     {rb_pager}
   </section>
   <p class="note">Model forward test — the legs <code>suggest()</code> would put on,
-  £{STAKE:.0f} flat per single plus one £{STAKE:.0f} combined builder on the
-  top-rated fixture each round. Over-2.5-goals and BTTS legs are priced from real
-  bookmaker odds at placement (marked <span class="rl">live</span>); everything
-  else from a fixed table. Not real money.</p>
+  £{STAKES['pl']:.0f} flat per single (£{STAKES['rest']:.0f} for Rest of Football)
+  plus one matching combined builder on the top-rated fixture each round.
+  Over-2.5-goals and BTTS legs are priced from real bookmaker odds at placement
+  (marked <span class="rl">live</span>) for Premier League and Champions League;
+  everything else, and all of Rest of Football, comes from a fixed table.
+  Not real money.</p>
 </main></body></html>"""

@@ -666,6 +666,151 @@ def _ucl_compute(already_graded):
     return upcoming, new_fin
 
 
+# --------------------------------------------------------------------------- #
+#  "Rest of football" - paper-account-only book (not on the public picks/
+#  leaderboard game, just the /paper forward test). La Liga, Bundesliga,
+#  Serie A, Ligue 1, the Championship, and the two English domestic cups.
+# --------------------------------------------------------------------------- #
+REST_LEAGUES = ["esp.1", "ger.1", "ita.1", "fra.1", "eng.2"]
+REST_CUPS = ["eng.fa", "eng.league_cup"]
+_ENGLISH_TIERS = ["eng.1", "eng.2", "eng.3", "eng.4"]
+_rest_tier_cache = {}
+
+
+def _rest_english_tier(team_id):
+    """Which English tier (PL/Championship/League One/League Two) a cup team's
+    domestic form should be read from - a cup fixture pits clubs from
+    different tiers against each other, so (unlike the 5 leagues above) the
+    competition slug itself isn't a valid stats source (see ucl_blend note)."""
+    if team_id in _rest_tier_cache:
+        return _rest_tier_cache[team_id]
+    found = None
+    for lg in _ENGLISH_TIERS:
+        if _dom_season(team_id, lg, THIS_SEASON) or _dom_season(team_id, lg, LAST_SEASON):
+            found = lg
+            break
+    _rest_tier_cache[team_id] = found
+    return found
+
+
+def _rest_scoreboard_events(league, days_ahead=9):
+    site = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{league}"
+    d1 = (date.today() - timedelta(days=1)).strftime("%Y%m%d")
+    d2 = (date.today() + timedelta(days=days_ahead)).strftime("%Y%m%d")
+    try:
+        return league, get(f"{site}/scoreboard?dates={d1}-{d2}").get("events", [])
+    except Exception:
+        return league, []
+
+
+def _rest_parse_events(events):
+    """[{id, date, home, away, home_id, away_id, completed, h_score, a_score,
+    comp, cs}] - the bits both _rest_upcoming and _rest_actuals need."""
+    out = []
+    for ev in events:
+        comp = ev["competitions"][0]
+        cs = comp["competitors"]
+        h = next((c for c in cs if c["homeAway"] == "home"), None)
+        a = next((c for c in cs if c["homeAway"] == "away"), None)
+        if not h or not a:
+            continue
+
+        def _sc(c):
+            try:
+                return int(c.get("score"))
+            except (TypeError, ValueError):
+                return None
+
+        out.append({
+            "id": ev["id"], "date": ev["date"], "comp": comp, "cs": cs,
+            "home": h["team"].get("shortDisplayName") or h["team"]["displayName"],
+            "away": a["team"].get("shortDisplayName") or a["team"]["displayName"],
+            "home_id": h["team"]["id"], "away_id": a["team"]["id"],
+            "completed": bool(comp["status"]["type"].get("completed")),
+            "h_score": _sc(h), "a_score": _sc(a),
+        })
+    return out
+
+
+def _rest_blend_for(team_id, league, is_cup):
+    return ucl_blend((team_id, _rest_english_tier(team_id) if is_cup else league))
+
+
+def _rest_compute():
+    """The expensive path (~20s, 7 leagues x scoreboard + per-team stats):
+    one pass over every rest-of-football competition producing BOTH the
+    upcoming rows and the finished-fixture totals, exactly like
+    _ucl_compute() does for UCL - only ever called on a cache miss."""
+    leagues = REST_LEAGUES + REST_CUPS
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        pairs = list(ex.map(_rest_scoreboard_events, leagues))
+
+    upcoming, finished = [], {}
+    for league, raw_events in pairs:
+        events = _rest_parse_events(raw_events)
+        is_cup = league in REST_CUPS
+        team_ids = {tid for e in events for tid in (e["home_id"], e["away_id"])}
+        if not team_ids:
+            continue
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            blends = dict(zip(
+                team_ids,
+                ex.map(lambda tid: _rest_blend_for(tid, league, is_cup), team_ids),
+            ))
+        for e in events:
+            hb, ab = blends.get(e["home_id"]), blends.get(e["away_id"])
+            if not hb or not ab:
+                continue
+            x = expected(hb, ab)
+            if e["completed"] and e["h_score"] is not None and e["a_score"] is not None:
+                # Full _match_totals() output (has_stats/reds included) -
+                # this feeds paper.py's settle(), NOT the public display, so
+                # it must match _ucl_actuals()'s shape, not _finished_map()'s
+                # trimmed one.
+                tot = _match_totals(e["comp"], e["cs"], e["h_score"], e["a_score"])
+                finished[e["id"]] = {**tot, "kickoff": e["date"]}
+            elif not e["completed"]:
+                fx = {"id": e["id"], "date": e["date"], "home": e["home"], "away": e["away"],
+                      "home_abbr": e["home"], "away_abbr": e["away"], "league": league}
+                upcoming.append({"fx": fx, "x": x, "score": rating(x)})
+
+    upcoming.sort(key=lambda r: r["fx"]["date"])
+    return upcoming, finished
+
+
+_REST_CACHE_TTL = 20 * 60   # seconds - shorter than UCL's since kickoffs cluster tighter
+
+
+def rest_context():
+    """(upcoming_rows, finished_map), cached in the same coupon_ucl_cache
+    table UCL already uses (different keys) so settle()/place() don't pay
+    the ~20s fetch cost on every cron tick."""
+    cache = _ucl_cache_get()
+    up_row = cache.get("rest_upcoming")
+    fin = (cache.get("rest_results") or {}).get("payload") or {}
+    fresh = False
+    if up_row:
+        try:
+            age = (datetime.now(timezone.utc)
+                   - datetime.fromisoformat(up_row["refreshed_at"])).total_seconds()
+            fresh = age < _REST_CACHE_TTL
+        except Exception:
+            fresh = False
+    if fresh:
+        return up_row["payload"] or [], fin
+
+    try:
+        upcoming, new_fin = _rest_compute()
+    except Exception:
+        return (up_row["payload"] or []) if up_row else [], fin
+
+    _ucl_cache_put("rest_upcoming", upcoming)
+    merged = {**fin, **new_fin}
+    if new_fin or not cache.get("rest_results"):
+        _ucl_cache_put("rest_results", merged)
+    return upcoming, merged
+
+
 def ucl_band(rows):
     if not rows:
         return ""
