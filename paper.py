@@ -34,6 +34,24 @@ BOOKS = ("pl", "ucl", "rest")
 STAKES = {"pl": 10.0, "ucl": 10.0, "rest": 10.0}
 START_BANKROLL = 1000.0
 
+# One "comp" can span several real leagues (rest of football does), so every
+# bet also records which actual league it's on - lets the Recent Bets table
+# filter down to just one (e.g. Ligue 1) instead of the whole rest-of-
+# football bucket.
+LEAGUE_LABELS = {
+    "esp.1": "La Liga", "ger.1": "Bundesliga", "ita.1": "Serie A",
+    "fra.1": "Ligue 1", "eng.2": "Championship", "eng.fa": "FA Cup",
+    "eng.league_cup": "EFL Cup",
+}
+
+
+def _league_label(comp, f):
+    if comp == "pl":
+        return "Premier League"
+    if comp == "ucl":
+        return "Champions League"
+    return LEAGUE_LABELS.get(f.get("league"), "Rest of Football")
+
 # Realistic-ish Premier League bookmaker prices. Keyed by the (metric, line)
 # tuple `suggest()` puts in each leg's "check". Tweak in one place; history can
 # be re-priced later by re-running settle with new numbers.
@@ -219,7 +237,8 @@ def place(comp):
             if src == "real":
                 real_used += 1
             bets.append({
-                "comp": comp, "round": round_id, "bet_type": "single",
+                "comp": comp, "league": _league_label(comp, f),
+                "round": round_id, "bet_type": "single",
                 "fixture_id": f["id"], "fixture": _name(f), "kickoff": f["date"],
                 "market": leg["check"][0], "line": float(leg["check"][1]),
                 "leg_text": leg["text"], "legs": None,
@@ -243,7 +262,8 @@ def place(comp):
         srcs = {s for *_, s in top_priced}
         src = "real" if srcs == {"real"} else ("mixed" if "real" in srcs else "table")
         bets.append({
-            "comp": comp, "round": round_id, "bet_type": "builder",
+            "comp": comp, "league": _league_label(comp, tf),
+            "round": round_id, "bet_type": "builder",
             "fixture_id": tf["id"], "fixture": _name(tf), "kickoff": tf["date"],
             "market": "builder", "line": 0.0,
             "leg_text": " + ".join(t for _, _, t, _, _ in top_priced),
@@ -576,8 +596,9 @@ def generate_paper_html():
       </section>"""
 
     def bet_row(b):
+        league = b.get("league") or b["comp"].upper()
         return (
-            f"<tr><td>{(b['placed_at'] or '')[:10]}</td><td>{b['comp'].upper()}</td>"
+            f'<tr data-league="{league}"><td>{(b["placed_at"] or "")[:10]}</td><td>{league}</td>'
             f"<td>{b['fixture']}</td>"
             f"<td>{b['leg_text']}{' <span class=bld>BUILDER</span>' if b['bet_type'] == 'builder' else ''}</td>"
             f"<td>{float(b['price']):.2f}"
@@ -612,9 +633,23 @@ def generate_paper_html():
     ]
     recent = "".join(recent_rows) or "<tr><td colspan=7 class='muted'>No bets placed yet.</td></tr>"
 
+    # League filter — lets a visitor pick just one league (e.g. Ligue 1) out
+    # of "Rest of Football", or Premier League on its own, or leave it on
+    # "All" to see everything together. Only offered for leagues that
+    # actually have bets yet (no point showing an empty "FA Cup" filter).
+    _LEAGUE_ORDER = ["Premier League", "Champions League", "La Liga", "Bundesliga",
+                      "Serie A", "Ligue 1", "Championship", "FA Cup", "EFL Cup"]
+    present = {b.get("league") or b["comp"].upper() for b in bets}
+    ordered_leagues = [lg for lg in _LEAGUE_ORDER if lg in present]
+    ordered_leagues += sorted(present - set(_LEAGUE_ORDER))
+    filter_btns = ('<button type="button" class="lg-filter on" data-league="all">All</button>'
+                   + "".join(f'<button type="button" class="lg-filter" data-league="{lg}">{lg}</button>'
+                             for lg in ordered_leagues))
+
     # Pagination is entirely client-side (every row is already in the DOM;
-    # JS just shows/hides them) so the page-size choice needs no reload.
-    rb_pager = "" if len(recent_rows) <= 25 else """
+    # JS just shows/hides them) so the page-size/filter choice needs no reload.
+    rb_pager = "" if not recent_rows else f"""
+    <div class="rb-filters">{filter_btns if len(ordered_leagues) > 1 else ""}</div>
     <div class="rb-pager">
       <label class="rb-size">Rows per page
         <select id="rb-size" onchange="rbSetSize(this.value)">
@@ -629,33 +664,53 @@ def generate_paper_html():
       <button type="button" class="rb-nav" id="rb-last" onclick="rbLast()">Last &#8677;</button>
     </div>
     <script>
-    (function () {
-      var rows = Array.prototype.slice.call(
+    (function () {{
+      var allRows = Array.prototype.slice.call(
         document.getElementById('rb-body').getElementsByTagName('tr'));
-      var size = 25, page = 1;
-      function total() { return Math.max(1, Math.ceil(rows.length / size)); }
-      function render() {
-        var t = total();
+      var size = 25, page = 1, filter = 'all';
+      function visibleRows() {{
+        return filter === 'all' ? allRows :
+          allRows.filter(function (r) {{ return r.dataset.league === filter; }});
+      }}
+      function render() {{
+        var vis = visibleRows();
+        var t = Math.max(1, Math.ceil(vis.length / size));
         if (page > t) page = t;
-        rows.forEach(function (r, i) {
-          r.hidden = !(i >= (page - 1) * size && i < page * size);
-        });
-        document.getElementById('rb-pos').textContent = 'Page ' + page + ' of ' + t;
+        allRows.forEach(function (r) {{ r.hidden = true; }});
+        vis.forEach(function (r, i) {{
+          if (i >= (page - 1) * size && i < page * size) r.hidden = false;
+        }});
+        document.getElementById('rb-pos').textContent = 'Page ' + page + ' of ' + t
+          + ' (' + vis.length + ' bet' + (vis.length === 1 ? '' : 's') + ')';
         document.getElementById('rb-first').disabled = page === 1;
         document.getElementById('rb-prev').disabled = page === 1;
         document.getElementById('rb-next').disabled = page === t;
         document.getElementById('rb-last').disabled = page === t;
-      }
-      window.rbGo = function (d) {
+      }}
+      window.rbGo = function (d) {{
+        var vis = visibleRows();
+        var t = Math.max(1, Math.ceil(vis.length / size));
         var next = page + d;
-        if (next < 1 || next > total()) return;
+        if (next < 1 || next > t) return;
         page = next; render();
-      };
-      window.rbFirst = function () { page = 1; render(); };
-      window.rbLast = function () { page = total(); render(); };
-      window.rbSetSize = function (v) { size = parseInt(v, 10) || 25; page = 1; render(); };
+      }};
+      window.rbFirst = function () {{ page = 1; render(); }};
+      window.rbLast = function () {{
+        page = Math.max(1, Math.ceil(visibleRows().length / size)); render();
+      }};
+      window.rbSetSize = function (v) {{ size = parseInt(v, 10) || 25; page = 1; render(); }};
+      document.querySelectorAll('.lg-filter').forEach(function (btn) {{
+        btn.addEventListener('click', function () {{
+          filter = btn.dataset.league;
+          page = 1;
+          document.querySelectorAll('.lg-filter').forEach(function (b) {{
+            b.classList.toggle('on', b === btn);
+          }});
+          render();
+        }});
+      }});
       render();
-    })();
+    }})();
     </script>"""
 
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -697,7 +752,11 @@ a{{color:#ffb80c}}
 .bar-fill.btts{{background:#ab47bc}}
 .bar-fill.red{{background:#ff6b6b}}
 .bar-pct{{text-align:right;font-weight:700}}
-.rb-pager{{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;font-size:12px;flex-wrap:wrap}}
+.rb-filters{{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}}
+.lg-filter{{background:#2e2e2e;color:#bbb;border:1px solid #444;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:11.5px}}
+.lg-filter:hover{{background:#3a3a3a}}
+.lg-filter.on{{background:#ffb80c;color:#000;border-color:#ffb80c;font-weight:700}}
+.rb-pager{{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;font-size:12px;flex-wrap:wrap}}
 .rb-size{{display:flex;align-items:center;gap:6px;color:#9a9a9a}}
 .rb-size select{{background:#2e2e2e;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 7px;font-size:12px}}
 .rb-nav{{background:#2e2e2e;color:#eee;border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px}}
@@ -735,7 +794,7 @@ a{{color:#ffb80c}}
   </section>
   <section class="card">
     <h2>Recent bets</h2>
-    <table><thead><tr><th>Placed</th><th>Comp</th><th>Fixture</th><th>Bet</th>
+    <table><thead><tr><th>Placed</th><th>League</th><th>Fixture</th><th>Bet</th>
     <th>Price</th><th>Status</th><th>P&amp;L</th></tr></thead>
     <tbody id="rb-body">{recent}</tbody></table>
     {rb_pager}

@@ -6,6 +6,8 @@
 create table if not exists public.coupon_paper_bets (
   id          uuid primary key default gen_random_uuid(),
   comp        text not null check (comp in ('pl','ucl','rest')),
+  league      text,                          -- 'Premier League' / 'La Liga' / etc - which
+                                              -- of possibly several leagues within a comp
   round       text not null,                 -- e.g. 'pl:2026-09-12'
   bet_type    text not null check (bet_type in ('single','builder')),
   fixture_id  text not null,
@@ -36,6 +38,10 @@ alter table public.coupon_paper_bets add constraint coupon_paper_bets_comp_check
 -- re-run safe: add price_src to an existing table
 alter table public.coupon_paper_bets
   add column if not exists price_src text not null default 'table';
+
+-- re-run safe: add league to an existing table (lets Recent Bets filter by
+-- one specific league instead of the whole comp)
+alter table public.coupon_paper_bets add column if not exists league text;
 
 create unique index if not exists coupon_paper_bets_uk
   on public.coupon_paper_bets (comp, fixture_id, bet_type, market, line);
