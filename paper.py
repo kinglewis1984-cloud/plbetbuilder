@@ -590,9 +590,10 @@ def generate_paper_html():
     # Group by fixture so every bet on the same match sits together, rather
     # than interleaving with whatever else was placed around the same time.
     # Pending fixtures always sort above settled ones (so open bets are on
-    # page 1); within each of those two blocks, groups are ordered by their
-    # most recent bet (newest first), and bets within a group stay
-    # newest-first too - so the very last page ends on the first bet ever placed.
+    # page 1), ordered by KICKOFF TIME (soonest first - whoever's playing
+    # next sits at the top). Settled groups stay ordered by their most
+    # recent bet (newest first), and bets within a group stay newest-first
+    # too - so the very last page ends on the first bet ever placed.
     fixture_groups = {}
     for b in bets:
         fixture_groups.setdefault((b["comp"], b["fixture_id"]), []).append(b)
@@ -602,8 +603,10 @@ def generate_paper_html():
     )
     settled_keys = [k for k in group_order
                     if not any(b["status"] == "pending" for b in fixture_groups[k])]
-    pending_keys = [k for k in group_order
-                    if any(b["status"] == "pending" for b in fixture_groups[k])]
+    pending_keys = sorted(
+        (k for k in group_order if any(b["status"] == "pending" for b in fixture_groups[k])),
+        key=lambda k: fixture_groups[k][0]["kickoff"] or "",
+    )
     recent_rows = [
         bet_row(b) for key in (pending_keys + settled_keys) for b in reversed(fixture_groups[key])
     ]
