@@ -934,6 +934,35 @@ def _finished_map(season):
     }
 
 
+def _fixture_info_map(season, rows, ucl_up):
+    """id -> {home, away, date, lines} for every fixture we know about this
+    season (finished PL, this week's PL, or upcoming UCL) - lets the client
+    render + grade a player's OWN pick history for any past week, not just
+    the current one (name/date come from here, the actual result from the
+    `results`/finished map when one exists)."""
+    info = {}
+    for g in season:
+        f, x = g["fx"], g["model"]
+        info[f["id"]] = {
+            "home": f["home_abbr"], "away": f["away_abbr"], "date": f["date"],
+            "lines": {k: pick_line(k, x[k]) for k in ("goals", "corners", "cards")},
+        }
+    for r in rows:
+        f, x = r["fx"], r["x"]
+        info[f["id"]] = {
+            "home": f["home_abbr"], "away": f["away_abbr"], "date": f["date"],
+            "lines": {k: pick_line(k, x[k]) for k in ("goals", "corners", "cards")},
+        }
+    for u in ucl_up:
+        f, x = u["fx"], u["x"]
+        info[f["id"]] = {
+            "home": f.get("home_abbr", f.get("home")), "away": f.get("away_abbr", f.get("away")),
+            "date": f["date"],
+            "lines": {k: pick_line(k, x[k]) for k in ("goals", "corners", "cards")},
+        }
+    return info
+
+
 SEASON_PRIZES = [1_000_000, 500_000, 250_000]   # 1st / 2nd / 3rd
 SEASON_ROUND = f"season:{THIS_SEASON}-{(THIS_SEASON + 1) % 100:02d}"
 
@@ -1020,7 +1049,8 @@ def generate_html(d1=None, d2=None):
              "lines": {k: pick_line(k, r["x"][k]) for k in ("goals", "corners", "cards")}}
             for r in sorted(rows, key=lambda r: r["fx"]["date"])
         ],
-        "results": {fid: finished[fid] for fid in weekend_ids if fid in finished},
+        "results": finished,
+        "fixtureInfo": _fixture_info_map(season, rows, ucl_up),
         "standings": stand,
     }
 
@@ -1061,8 +1091,8 @@ def generate_ucl_html():
              "lines": {k: pick_line(k, u["x"][k]) for k in ("goals", "corners", "cards")}}
             for u in sorted(ucl_up, key=lambda u: u["fx"]["date"])
         ],
-        "results": {u["fx"]["id"]: finished[u["fx"]["id"]]
-                    for u in ucl_up if u["fx"]["id"] in finished},
+        "results": finished,
+        "fixtureInfo": _fixture_info_map(season, pl_rows, ucl_up),
         "standings": stand,
     }
 
@@ -1402,7 +1432,9 @@ PICKS_JS = r"""
     panel.hidden = false;
     panel.innerHTML =
       '<div class="mp-h"><b>My predictions</b>' +
-      '<button type="button" id="lb-open">Leaderboard</button></div>' +
+      '<button type="button" id="lb-open">Leaderboard</button>' +
+      (player ? '<button type="button" id="hist-open">My History</button>' : '') +
+      '</div>' +
       (player ? '<div class="mp-who">' + player +
         ' <button type="button" id="wl-signout">sign out</button>' +
         ' <button type="button" id="wl-pin">change PIN</button>' +
@@ -1436,6 +1468,8 @@ PICKS_JS = r"""
       '<button type="button" class="mp-pay" id="pay-open">Payout sheet</button>';
     var lb = document.getElementById('lb-open');
     if (lb) lb.addEventListener('click', openLB);
+    var ho = document.getElementById('hist-open');
+    if (ho) ho.addEventListener('click', openHistory);
     var wc = document.getElementById('wl-connect');
     if (wc) wc.addEventListener('click', linkWallet);
     var wd = document.getElementById('wl-disconnect');
@@ -1991,6 +2025,80 @@ PICKS_JS = r"""
   document.querySelectorAll('.lb-tab').forEach(function (t) {
     t.addEventListener('click', function () { showLB(t.dataset.tab); });
   });
+
+  function pickCorrect(mk, sel, res) {
+    if (mk === 'goals_ou')   return sel === 'over' ? res.goals   > res.lines.goals   : res.goals   < res.lines.goals;
+    if (mk === 'corners_ou') return sel === 'over' ? res.corners > res.lines.corners : res.corners < res.lines.corners;
+    if (mk === 'cards_ou')   return sel === 'over' ? res.cards   > res.lines.cards   : res.cards   < res.lines.cards;
+    if (mk === 'btts')       return sel === 'yes'  ? res.btts : !res.btts;
+    if (mk === 'result')     { var d = res.h_goals - res.a_goals; return sel==='home'?d>0:sel==='draw'?d===0:d<0; }
+    return false;
+  }
+  function fridayOf(iso) {
+    var d = new Date(iso);
+    var diff = (d.getUTCDay() - 5 + 7) % 7;   // days since the most recent Friday
+    var fri = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diff));
+    return fri.toISOString().slice(0, 10);
+  }
+  function openHistory() {
+    document.getElementById('history-modal').hidden = false;
+    var body = document.getElementById('history-body');
+    if (!player || !sb) { body.innerHTML = '<p class="hint-text">Sign in first to see your history.</p>'; return; }
+    body.innerHTML = '<p class="hint-text">Loading…</p>';
+    sb.from('coupon_picks').select('fixture_id,market,selection,created_at')
+      .eq('player', player).order('created_at', { ascending: true })
+      .then(function (r) {
+        if (!r || r.error || !r.data) { body.innerHTML = '<p class="hint-text">Could not load history.</p>'; return; }
+        renderHistory(r.data);
+      });
+  }
+  function renderHistory(picks) {
+    var body = document.getElementById('history-body');
+    var latest = {};
+    picks.forEach(function (p) { latest[p.fixture_id + '|' + p.market] = p; });
+    var byWeek = {};
+    Object.keys(latest).forEach(function (key) {
+      var p = latest[key];
+      var info = cfg.fixtureInfo && cfg.fixtureInfo[p.fixture_id];
+      if (!info) return;
+      var wk = fridayOf(info.date);
+      var wkList = byWeek[wk] = byWeek[wk] || {};
+      var fx = wkList[p.fixture_id] = wkList[p.fixture_id] || { info: info, picks: [] };
+      fx.picks.push(p);
+    });
+    var weekKeys = Object.keys(byWeek).sort().reverse();
+    if (!weekKeys.length) {
+      body.innerHTML = '<p class="hint-text">No predictions made yet.</p>';
+      return;
+    }
+    body.innerHTML = weekKeys.map(function (wk, i) {
+      var fxMap = byWeek[wk];
+      var won = 0, total = 0;
+      var cards = Object.keys(fxMap).map(function (fid) {
+        var g = fxMap[fid], info = g.info;
+        var res = cfg.results && cfg.results[fid];
+        var lines = g.picks.map(function (p) {
+          var m = marketBy(p.market);
+          if (!m) return '';
+          var ln = m.metric && info.lines ? ' ' + info.lines[m.metric] : '';
+          var label = '<b>' + m.label + '</b> <span class="rzl-p">' + optLabel(m, p.selection) + ln + '</span>';
+          if (!res) return '<span class="rzl rzl--na">' + label + ' &rarr; pending</span>';
+          total++;
+          var ok = pickCorrect(p.market, p.selection, res);
+          if (ok) won++;
+          return '<span class="rzl rzl--' + (ok ? 'hit' : 'miss') + '">' + label + '</span>';
+        }).join('');
+        var score = res ? (res.h_goals + '&#8211;' + res.a_goals) : 'vs';
+        return '<div class="rz"><div class="rz-score"><b>' + info.home + '</b> ' + score +
+               ' <b>' + info.away + '</b></div><div class="rz-lines">' + lines + '</div></div>';
+      }).join('');
+      return '<details class="wk"' + (i === 0 ? ' open' : '') + '>' +
+        '<summary><span class="wk-span">w/o ' + wk + '</span>' +
+        '<span class="wk-rate">' + won + '/' + total + ' landed</span></summary>' +
+        '<div class="wk-body">' + cards + '</div></details>';
+    }).join('');
+  }
+
   function closeModal(m) {
     m.hidden = true;
     if (m === nameModal && pendingSignup && !player) setPlayer(pendingSignup);
@@ -3017,6 +3125,14 @@ def render(rows, d1, d2, generated, results=None, built_iso="", report=None, cfg
         <span>&#129353; 3rd &mdash; {SEASON_PRIZES[2]:,} {SSB_TICKER}</span>
       </div>
       <p class="lb-note">1 point per correct prediction &middot; points convert to {SSB_TICKER} prizes at {SSB_PER_POINT} {SSB_TICKER} per point &middot; prizes distributed weekly. Predictions lock at kickoff.</p>
+    </div>
+  </div>
+
+  <div class="modal" id="history-modal" hidden>
+    <div class="modal-box lb">
+      <button class="modal-x" data-close aria-label="Close">&times;</button>
+      <h3>My History</h3>
+      <div id="history-body" class="lb-scroll"></div>
     </div>
   </div>
 
