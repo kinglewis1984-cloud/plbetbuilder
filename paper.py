@@ -181,13 +181,10 @@ def _price(check):
     return PRICES.get(tuple(check))
 
 
-def _abbr(name):
-    return name.split(" ")[0][:3].title() if name else "?"
-
-
 def _name(f):
-    return (f"{_abbr(f.get('home') or f.get('home_abbr'))} v "
-            f"{_abbr(f.get('away') or f.get('away_abbr'))}")
+    home = f.get("home") or f.get("home_abbr") or "?"
+    away = f.get("away") or f.get("away_abbr") or "?"
+    return f"{home} v {away}"
 
 
 def _leg_price(check, fx_odds):
