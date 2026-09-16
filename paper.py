@@ -595,10 +595,15 @@ def generate_paper_html():
         <tbody>{mk}</tbody></table>
       </section>"""
 
+    _MARKET_FILTER = {"goals": "Goals", "goals_u": "Goals", "corners": "Corners",
+                       "cards": "Cards", "btts": "BTTS", "red": "Red card"}
+
     def bet_row(b):
         league = b.get("league") or b["comp"].upper()
+        market = _MARKET_FILTER.get(b["market"], "")
         return (
-            f'<tr data-league="{league}"><td>{(b["placed_at"] or "")[:10]}</td><td>{league}</td>'
+            f'<tr data-league="{league}" data-market="{market}">'
+            f'<td>{(b["placed_at"] or "")[:10]}</td><td>{league}</td>'
             f"<td>{b['fixture']}</td>"
             f"<td>{b['leg_text']}{' <span class=bld>BUILDER</span>' if b['bet_type'] == 'builder' else ''}</td>"
             f"<td>{float(b['price']):.2f}"
@@ -646,10 +651,18 @@ def generate_paper_html():
                    + "".join(f'<button type="button" class="lg-filter" data-league="{lg}">{lg}</button>'
                              for lg in ordered_leagues))
 
+    # Market filter — Goals / Corners / Cards / BTTS / Red card, alongside
+    # the league filter above. A builder bet spans more than one market so
+    # it only shows under "All", not under any single market button.
+    market_btns = ('<button type="button" class="mk-filter on" data-market="all">All</button>'
+                   + "".join(f'<button type="button" class="mk-filter" data-market="{mk}">{mk}</button>'
+                             for mk in ("Goals", "Corners", "Cards", "BTTS", "Red card")))
+
     # Pagination is entirely client-side (every row is already in the DOM;
     # JS just shows/hides them) so the page-size/filter choice needs no reload.
     rb_pager = "" if not recent_rows else f"""
     <div class="rb-filters">{filter_btns if len(ordered_leagues) > 1 else ""}</div>
+    <div class="rb-filters">{market_btns}</div>
     <div class="rb-pager">
       <label class="rb-size">Rows per page
         <select id="rb-size" onchange="rbSetSize(this.value)">
@@ -667,10 +680,12 @@ def generate_paper_html():
     (function () {{
       var allRows = Array.prototype.slice.call(
         document.getElementById('rb-body').getElementsByTagName('tr'));
-      var size = 25, page = 1, filter = 'all';
+      var size = 25, page = 1, leagueFilter = 'all', marketFilter = 'all';
       function visibleRows() {{
-        return filter === 'all' ? allRows :
-          allRows.filter(function (r) {{ return r.dataset.league === filter; }});
+        return allRows.filter(function (r) {{
+          return (leagueFilter === 'all' || r.dataset.league === leagueFilter)
+            && (marketFilter === 'all' || r.dataset.market === marketFilter);
+        }});
       }}
       function render() {{
         var vis = visibleRows();
@@ -701,9 +716,19 @@ def generate_paper_html():
       window.rbSetSize = function (v) {{ size = parseInt(v, 10) || 25; page = 1; render(); }};
       document.querySelectorAll('.lg-filter').forEach(function (btn) {{
         btn.addEventListener('click', function () {{
-          filter = btn.dataset.league;
+          leagueFilter = btn.dataset.league;
           page = 1;
           document.querySelectorAll('.lg-filter').forEach(function (b) {{
+            b.classList.toggle('on', b === btn);
+          }});
+          render();
+        }});
+      }});
+      document.querySelectorAll('.mk-filter').forEach(function (btn) {{
+        btn.addEventListener('click', function () {{
+          marketFilter = btn.dataset.market;
+          page = 1;
+          document.querySelectorAll('.mk-filter').forEach(function (b) {{
             b.classList.toggle('on', b === btn);
           }});
           render();
@@ -756,6 +781,9 @@ a{{color:#ffb80c}}
 .lg-filter{{background:#2e2e2e;color:#bbb;border:1px solid #444;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:11.5px}}
 .lg-filter:hover{{background:#3a3a3a}}
 .lg-filter.on{{background:#ffb80c;color:#000;border-color:#ffb80c;font-weight:700}}
+.mk-filter{{background:#2e2e2e;color:#bbb;border:1px solid #444;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:11.5px}}
+.mk-filter:hover{{background:#3a3a3a}}
+.mk-filter.on{{background:#4a9fd8;color:#000;border-color:#4a9fd8;font-weight:700}}
 .rb-pager{{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;font-size:12px;flex-wrap:wrap}}
 .rb-size{{display:flex;align-items:center;gap:6px;color:#9a9a9a}}
 .rb-size select{{background:#2e2e2e;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 7px;font-size:12px}}
