@@ -124,6 +124,33 @@ def get(url):
         return json.load(r)
 
 
+def scoreboard_events(site_base, d1, d2):
+    """Every event across [d1, d2] (YYYYMMDD strings, inclusive), fetched as
+    one call PER DAY and merged (dedup by event id).
+
+    ESPN's scoreboard date-RANGE syntax (dates=D1-D2) started returning a
+    flat HTTP 400 on every call - confirmed live 2026-09-16, verified against
+    both this project's own IP and Vercel's production IP, past/present/
+    future ranges, wide and narrow, so it's an upstream break, not something
+    specific to one query - while a single bare date (dates=D) still works
+    fine. This is now the ONLY way any part of the site should ask ESPN's
+    scoreboard for a span of days; do not go back to dates=D1-D2."""
+    start = datetime.strptime(d1, "%Y%m%d").date()
+    end = datetime.strptime(d2, "%Y%m%d").date()
+    days, d = [], start
+    while d <= end:
+        days.append(d.strftime("%Y%m%d"))
+        d += timedelta(days=1)
+    seen, out = set(), []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        for evs in ex.map(lambda day: get(f"{site_base}/scoreboard?dates={day}").get("events", []), days):
+            for ev in evs:
+                if ev["id"] not in seen:
+                    seen.add(ev["id"])
+                    out.append(ev)
+    return out
+
+
 def flat_stats(payload):
     out = {}
     for cat in payload.get("splits", {}).get("categories", []):
@@ -227,9 +254,9 @@ def upcoming_weekend():
 
 
 def fixtures(d1, d2):
-    data = get(f"{SITE}/scoreboard?dates={d1}-{d2}")
+    events = scoreboard_events(SITE, d1, d2)
     out = []
-    for ev in data.get("events", []):
+    for ev in events:
         comp = ev["competitions"][0]
         cs = comp["competitors"]
         home = next(c for c in cs if c["homeAway"] == "home")
@@ -502,25 +529,9 @@ def ucl_blend(args):
 
 
 def _ucl_scoreboard_events():
-    """Every UCL event from the points-start date to a week ahead (windowed —
-    one wide call caps at 100 events)."""
+    """Every UCL event from the points-start date to a week ahead."""
     end = date.today() + timedelta(days=8)
-    windows, d = [], UCL_POINTS_START
-    while d <= end:
-        windows.append((d.strftime("%Y%m%d"), (d + timedelta(days=6)).strftime("%Y%m%d")))
-        d += timedelta(days=7)
-    seen, out = set(), []
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        results = ex.map(
-            lambda w: get(f"{UCL_SITE}/scoreboard?dates={w[0]}-{w[1]}").get("events", []),
-            windows,
-        )
-        for evs in results:
-            for ev in evs:
-                if ev["id"] not in seen:
-                    seen.add(ev["id"])
-                    out.append(ev)
-    return out
+    return scoreboard_events(UCL_SITE, UCL_POINTS_START.strftime("%Y%m%d"), end.strftime("%Y%m%d"))
 
 
 _UCL_CACHE_TTL = 40 * 60   # seconds — how long a cached UCL snapshot is trusted
@@ -698,7 +709,7 @@ def _rest_scoreboard_events(league, days_ahead=9):
     d1 = (date.today() - timedelta(days=1)).strftime("%Y%m%d")
     d2 = (date.today() + timedelta(days=days_ahead)).strftime("%Y%m%d")
     try:
-        return league, get(f"{site}/scoreboard?dates={d1}-{d2}").get("events", [])
+        return league, scoreboard_events(site, d1, d2)
     except Exception:
         return league, []
 
@@ -741,9 +752,12 @@ def _rest_compute():
     one pass over every rest-of-football competition producing BOTH the
     upcoming rows and the finished-fixture totals, exactly like
     _ucl_compute() does for UCL - only ever called on a cache miss."""
+    # Sequential across leagues (not threaded): each call already fans out
+    # to 8 concurrent day-by-day requests internally (scoreboard_events),
+    # so nesting another 7-wide pool here would spike to ~56 simultaneous
+    # ESPN requests at once - stack the leagues instead of multiplying them.
     leagues = REST_LEAGUES + REST_CUPS
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        pairs = list(ex.map(_rest_scoreboard_events, leagues))
+    pairs = [_rest_scoreboard_events(lg) for lg in leagues]
 
     upcoming, finished = [], {}
     for league, raw_events in pairs:
@@ -892,18 +906,20 @@ def season_matches(blends):
         windows.append((d.strftime("%Y%m%d"), (d + timedelta(days=6)).strftime("%Y%m%d")))
         d += timedelta(days=7)
 
+    # Sequential across weeks (not threaded): fixtures() already fans out to
+    # up to 8 concurrent day-by-day requests internally, so nesting another
+    # pool here would multiply concurrency rather than add to it.
     seen, graded = set(), []
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        for fx in ex.map(lambda w: fixtures(*w), windows):
-            for f in fx:
-                if f["id"] in seen or not f["result"]:
-                    continue
-                seen.add(f["id"])
-                a = f["result"]
-                x = expected(blends[f["home_id"]], blends[f["away_id"]])
-                model = {k: x[k] for k in SCORED_METRICS}
-                within = {k: metric_landed(k, model, a) for k in SCORED_METRICS}
-                graded.append({"fx": f, "actual": a, "model": model, "within": within})
+    for w in windows:
+        for f in fixtures(*w):
+            if f["id"] in seen or not f["result"]:
+                continue
+            seen.add(f["id"])
+            a = f["result"]
+            x = expected(blends[f["home_id"]], blends[f["away_id"]])
+            model = {k: x[k] for k in SCORED_METRICS}
+            within = {k: metric_landed(k, model, a) for k in SCORED_METRICS}
+            graded.append({"fx": f, "actual": a, "model": model, "within": within})
     graded.sort(key=lambda g: g["fx"]["date"])
     return graded
 
