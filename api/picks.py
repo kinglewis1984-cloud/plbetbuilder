@@ -2,7 +2,9 @@
 coupon book in the private betting-paper app to consume.
 
 Only the goals section (Over/Under total goals + BTTS) — the markets Betfair
-reliably lists for every PL / UCL fixture.
+reliably lists for every fixture, across every competition below: Premier
+League, Championship, Champions League, Europa League, La Liga, Bundesliga,
+Serie A, Ligue 1, FA Cup, and EFL Cup.
 """
 import json
 import sys
@@ -11,14 +13,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from paper import _rows_for  # noqa: E402
+from paper import _rows_for, _league_label  # noqa: E402
+from build import uel_context, suggest  # noqa: E402
 
 _GOALS = {"goals", "goals_u", "btts"}
+_LEAGUE_FOR = {"pl": "Premier League", "ucl": "Champions League", "uel": "Europa League"}
 
 
-def _picks(comp):
+def _picks_from_rows(comp, rows):
     out = []
-    for r in _rows_for(comp):
+    for r in rows:
         f = r["fx"]
         legs = [
             {"market": leg["check"][0], "line": float(leg["check"][1]),
@@ -31,15 +35,29 @@ def _picks(comp):
                 "home": f.get("home") or f.get("home_abbr"),
                 "away": f.get("away") or f.get("away_abbr"),
                 "kickoff": f["date"],
+                "league": _LEAGUE_FOR.get(comp) or _league_label(comp, f),
                 "legs": legs,
             })
     return out
 
 
+def _picks(comp):
+    return _picks_from_rows(comp, _rows_for(comp))
+
+
+def _uel_picks():
+    upcoming, _ = uel_context()
+    rows = [{"fx": u["fx"], "legs": suggest(u["x"])} for u in upcoming]
+    return _picks_from_rows("uel", rows)
+
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            body = json.dumps({"pl": _picks("pl"), "ucl": _picks("ucl")}).encode()
+            body = json.dumps({
+                "pl": _picks("pl"), "ucl": _picks("ucl"),
+                "uel": _uel_picks(), "rest": _picks("rest"),
+            }).encode()
             code = 200
         except Exception as e:  # noqa: BLE001
             body = json.dumps({"error": f"{type(e).__name__}: {e}"}).encode()

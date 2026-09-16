@@ -416,8 +416,10 @@ def team_blends():
 # --------------------------------------------------------------------------- #
 
 UCL_SITE = "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions"
+UEL_SITE = "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.europa"
 CORE_SOCCER = "https://sports.core.api.espn.com/v2/sports/soccer/leagues"
 UCL_POINTS_START = date(2026, 9, 8)   # UCL picks count from this date on
+UEL_POINTS_START = date(2026, 9, 16)  # Europa League's actual season start (verified live)
 _SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 
 # Domestic leagues a UCL club is likely to come from.
@@ -469,13 +471,21 @@ _ucl_probe_cache = {}
 
 
 def _ucl_probe_league(team_id):
+    """Which of _DOMESTIC_LEAGUES a team actually plays in, for a team_id not
+    already in the static map. Fires all (league, season) combos for this ONE
+    team concurrently rather than trying them one at a time - sequential was
+    fine for UCL (its static map already covers nearly every club, so this
+    rarely runs), but Europa League's much wider net of nations means this
+    genuinely gets hit often, and 38 sequential HTTP calls per unmapped team
+    (worse: PER unmapped team that's from a league not in this list at all,
+    since every combo then fails) made a single uel_context() call hang for
+    minutes - confirmed live, 2026-09-16."""
     if team_id in _ucl_probe_cache:
         return _ucl_probe_cache[team_id]
-    found = None
-    for lg in _DOMESTIC_LEAGUES:
-        if _dom_season(team_id, lg, THIS_SEASON) or _dom_season(team_id, lg, LAST_SEASON):
-            found = lg
-            break
+    combos = [(lg, s) for lg in _DOMESTIC_LEAGUES for s in (THIS_SEASON, LAST_SEASON)]
+    with ThreadPoolExecutor(max_workers=len(combos)) as ex:
+        results = list(ex.map(lambda c: (c[0], _dom_season(team_id, c[0], c[1])), combos))
+    found = next((lg for lg, res in results if res), None)
     _ucl_probe_cache[team_id] = found
     return found
 
@@ -614,6 +624,127 @@ def _ucl_compute(already_graded):
     """The expensive path: ESPN scoreboard + domestic-league model.
     Returns (upcoming_rows, newly_graded_finished_map)."""
     events = _ucl_scoreboard_events()
+    cached = already_graded
+    parsed, need = [], set()
+    for ev in events:
+        comp = ev["competitions"][0]
+        cs = comp["competitors"]
+        h = next(c for c in cs if c["homeAway"] == "home")
+        a = next(c for c in cs if c["homeAway"] == "away")
+
+        def _sc(c):
+            try:
+                return int(c.get("score"))
+            except (TypeError, ValueError):
+                return None
+
+        done = bool(comp["status"]["type"].get("completed"))
+        row = {
+            "id": ev["id"], "date": ev["date"], "comp": comp, "cs": cs,
+            "home_id": h["team"]["id"], "away_id": a["team"]["id"],
+            "home": h["team"]["displayName"], "away": a["team"]["displayName"],
+            "done": done, "h_score": _sc(h), "a_score": _sc(a),
+        }
+        parsed.append(row)
+        if (done and row["id"] not in cached) or not done:
+            need.add(row["home_id"])
+            need.add(row["away_id"])
+
+    blends = {}
+    if need:
+        idx = ucl_league_index(need)
+        with ThreadPoolExecutor(max_workers=12) as ex:
+            blends = dict(zip(need, ex.map(
+                ucl_blend, [(tid, idx.get(tid)) for tid in need])))
+
+    upcoming, new_fin = [], {}
+    for row in parsed:
+        if row["done"]:
+            if row["id"] in cached or row["h_score"] is None:
+                continue
+            h, a = blends.get(row["home_id"]), blends.get(row["away_id"])
+            if not h or not a:
+                continue
+            x = expected(h, a)
+            tot = _match_totals(row["comp"], row["cs"], row["h_score"], row["a_score"])
+            new_fin[row["id"]] = {
+                **{k: tot[k] for k in ("goals", "corners", "cards",
+                                       "h_goals", "a_goals", "btts")},
+                "kickoff": row["date"],
+                "lines": {k: pick_line(k, x[k]) for k in ("goals", "corners", "cards")},
+            }
+        else:
+            h, a = blends.get(row["home_id"]), blends.get(row["away_id"])
+            if not h or not a:
+                continue
+            x = expected(h, a)
+            fx = {"id": row["id"], "date": row["date"],
+                  "home": row["home"], "away": row["away"],
+                  "home_abbr": row["home"], "away_abbr": row["away"]}
+            upcoming.append({"fx": fx, "x": x, "score": rating(x)})
+
+    upcoming.sort(key=lambda r: r["score"], reverse=True)
+    return upcoming, new_fin
+
+
+# --------------------------------------------------------------------------- #
+#  Europa League - a deliberate near-duplicate of the UCL block above (own
+#  functions/cache keys, e.g. "uel_upcoming" vs UCL's bare "upcoming") rather
+#  than a shared parametrized version - UCL's pipeline is already fragile
+#  enough (see the scoreboard_events() fix) that refactoring it to be generic
+#  risks breaking something already working, for the sake of ~80 fewer lines.
+# --------------------------------------------------------------------------- #
+
+def _uel_scoreboard_events():
+    """Every Europa League event from the points-start date to a week ahead."""
+    end = date.today() + timedelta(days=8)
+    return scoreboard_events(UEL_SITE, UEL_POINTS_START.strftime("%Y%m%d"), end.strftime("%Y%m%d"))
+
+
+def _uel_rehydrate(u):
+    fx = {"id": u["id"], "date": u["date"], "home": u["home"], "away": u["away"],
+          "home_abbr": u["home"], "away_abbr": u["away"]}
+    return {"fx": fx, "x": u["x"], "score": u["score"]}
+
+
+def uel_context():
+    """(upcoming_rows, finished_map) for Europa League - same caching pattern
+    as ucl_context(), stored under separate 'uel_upcoming'/'uel_results' keys
+    in the same coupon_ucl_cache table."""
+    cache = _ucl_cache_get()
+    up_row = cache.get("uel_upcoming")
+    fin = (cache.get("uel_results") or {}).get("payload") or {}
+    fresh = False
+    if up_row:
+        try:
+            age = (datetime.now(timezone.utc)
+                   - datetime.fromisoformat(up_row["refreshed_at"])).total_seconds()
+            fresh = age < _UCL_CACHE_TTL
+        except Exception:
+            fresh = False
+    if fresh:
+        return [_uel_rehydrate(u) for u in (up_row["payload"] or [])], fin
+
+    try:
+        upcoming, new_fin = _uel_compute(fin)
+    except Exception:
+        stale = [_uel_rehydrate(u) for u in (up_row["payload"] or [])] if up_row else []
+        return stale, fin
+
+    _ucl_cache_put("uel_upcoming", [
+        {"id": u["fx"]["id"], "date": u["fx"]["date"], "home": u["fx"]["home"],
+         "away": u["fx"]["away"], "x": u["x"], "score": u["score"]}
+        for u in upcoming
+    ])
+    merged = {**fin, **new_fin}
+    if new_fin or not cache.get("uel_results"):
+        _ucl_cache_put("uel_results", merged)
+    return upcoming, merged
+
+
+def _uel_compute(already_graded):
+    """The expensive path: ESPN scoreboard + domestic-league model."""
+    events = _uel_scoreboard_events()
     cached = already_graded
     parsed, need = [], set()
     for ev in events:
