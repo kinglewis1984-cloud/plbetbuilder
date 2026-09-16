@@ -595,6 +595,58 @@ def generate_paper_html():
         <tbody>{mk}</tbody></table>
       </section>"""
 
+    _COMP_LABEL = {"pl": "Premier League", "ucl": "Champions League", "rest": "Rest of Football"}
+
+    def history_html():
+        """Separate from Recent Bets: settled bets only, grouped by round
+        (one placement batch), most recently settled round first - a clean
+        week-by-week record instead of a flat filterable log."""
+        settled = [b for b in bets if b["status"] in ("won", "lost", "void")]
+        if not settled:
+            return ""
+        by_round = {}
+        for b in settled:
+            by_round.setdefault(b["round"], []).append(b)
+
+        def round_time(items):
+            return max((b.get("settled_at") or b.get("placed_at") or "") for b in items)
+
+        rounds = sorted(by_round.items(), key=lambda kv: round_time(kv[1]), reverse=True)
+
+        def round_label(r):
+            comp, _, d = r.partition(":")
+            return f"{_COMP_LABEL.get(comp, comp.upper())} — {d}"
+
+        blocks = []
+        for i, (r, items) in enumerate(rounds):
+            won = sum(1 for b in items if b["status"] == "won")
+            lost = sum(1 for b in items if b["status"] == "lost")
+            void = sum(1 for b in items if b["status"] == "void")
+            pnl = round(sum(float(b["pnl"] or 0) for b in items), 2)
+            rec = f"{won}W-{lost}L" + (f"-{void}V" if void else "")
+            rows = "".join(
+                f"<tr><td>{b.get('league') or b['comp'].upper()}</td><td>{b['fixture']}</td>"
+                f"<td>{b['leg_text']}{' <span class=bld>BUILDER</span>' if b['bet_type'] == 'builder' else ''}</td>"
+                f"<td class='st-{b['status']}'>{b['status']}</td>"
+                f"<td class='{'up' if (b['pnl'] or 0) >= 0 else 'down'}'>"
+                f"{_fmt(float(b['pnl'])) if b['pnl'] is not None else '&ndash;'}</td></tr>"
+                for b in sorted(items, key=lambda b: b["fixture"])
+            )
+            blocks.append(f"""
+        <details class="hist-rd"{' open' if i == 0 else ''}>
+          <summary><span>{round_label(r)}</span>
+            <span class="{'up' if pnl >= 0 else 'down'}">{rec} &middot; {_fmt(pnl)}</span></summary>
+          <table><thead><tr><th>League</th><th>Fixture</th><th>Bet</th><th>Status</th><th>P&amp;L</th></tr></thead>
+          <tbody>{rows}</tbody></table>
+        </details>""")
+
+        return f"""
+  <section class="card">
+    <h2>History</h2>
+    <p class="sub">Every settled round, most recently settled first.</p>
+    {"".join(blocks)}
+  </section>"""
+
     _MARKET_FILTER = {"goals": "Goals", "goals_u": "Goals", "corners": "Corners",
                        "cards": "Cards", "btts": "BTTS", "red": "Red card"}
 
@@ -784,6 +836,12 @@ a{{color:#ffb80c}}
 .mk-filter{{background:#2e2e2e;color:#bbb;border:1px solid #444;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:11.5px}}
 .mk-filter:hover{{background:#3a3a3a}}
 .mk-filter.on{{background:#4a9fd8;color:#000;border-color:#4a9fd8;font-weight:700}}
+.hist-rd{{border:1px solid #333;border-radius:8px;margin-top:8px;padding:0 12px}}
+.hist-rd summary{{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 0;cursor:pointer;font-size:13px;list-style:none}}
+.hist-rd summary::-webkit-details-marker{{display:none}}
+.hist-rd summary span:first-child{{font-weight:600}}
+.hist-rd table{{margin:0 0 10px}}
 .rb-pager{{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;font-size:12px;flex-wrap:wrap}}
 .rb-size{{display:flex;align-items:center;gap:6px;color:#9a9a9a}}
 .rb-size select{{background:#2e2e2e;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 7px;font-size:12px}}
@@ -820,6 +878,7 @@ a{{color:#ffb80c}}
       {goals_row("<b>Combined</b>", goals_all)}
     </tbody></table>
   </section>
+  {history_html()}
   <section class="card">
     <h2>Recent bets</h2>
     <table><thead><tr><th>Placed</th><th>League</th><th>Fixture</th><th>Bet</th>
