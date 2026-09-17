@@ -26,7 +26,10 @@ _GOALS_MARKETS = {"goals", "goals_u", "btts"}
 
 
 def _bets_for(comp):
-    out = []
+    """Same shape as /api/picks (grouped by fixture, each with a "legs" list)
+    so the coupon book's place() loop works unchanged regardless of which
+    endpoint a comp's bets came from."""
+    by_fixture = {}
     rows = _read_bets(f"&comp=eq.{comp}&status=eq.pending&bet_type=eq.single")
     for b in rows:
         if b["market"] not in _GOALS_MARKETS:
@@ -34,12 +37,12 @@ def _bets_for(comp):
         home, sep, away = (b["fixture"] or "").partition(" v ")
         if not sep:
             continue
-        out.append({
+        fx = by_fixture.setdefault(b["fixture_id"], {
             "fixture_id": b["fixture_id"], "home": home, "away": away,
-            "kickoff": b["kickoff"], "league": b.get("league"),
-            "market": b["market"], "line": float(b["line"]), "text": b["leg_text"],
+            "kickoff": b["kickoff"], "league": b.get("league"), "legs": [],
         })
-    return out
+        fx["legs"].append({"market": b["market"], "line": float(b["line"]), "text": b["leg_text"]})
+    return list(by_fixture.values())
 
 
 class handler(BaseHTTPRequestHandler):
