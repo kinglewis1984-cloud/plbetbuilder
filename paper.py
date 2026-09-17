@@ -20,6 +20,7 @@ import os
 import re
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import build
@@ -341,6 +342,27 @@ def place(comp):
     round_id = f"{comp}:{_dt(rows[0]['fx']['date']).date().isoformat()}"
     bets = []
     real_used = 0
+
+    # Every leg's reason needs its two teams' last-10 match history, and each
+    # is a ~1s ESPN fetch cached per (team_id, league) - done sequentially
+    # inside a single placement run for all fixtures in a comp, that's enough
+    # distinct teams to blow the function's timeout. Warm the cache for every
+    # team in this round concurrently first; the loop below then just reads it.
+    pairs = set()
+    for r in rows:
+        f = r["fx"]
+        for side in ("home_id", "away_id"):
+            tid = f.get(side)
+            if tid:
+                league = build.team_domestic_league(tid, comp, f.get("league"))
+                if league:
+                    pairs.add((tid, league))
+    if pairs:
+        # Kept modest (not 16+) because team_recent_matches() itself opens its
+        # own inner thread pool for corners/cards - nesting pools multiplies
+        # concurrent ESPN requests fast (bit us before with UCL/UEL probing).
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            list(ex.map(lambda p: build.team_recent_matches(*p), pairs))
 
     for r in rows:
         f = r["fx"]

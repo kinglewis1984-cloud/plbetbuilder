@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/index.py": { "maxDuration": 30, "includeFiles": "{build,sponsors,paper}.py" },
+    "api/index.py": { "maxDuration": 60, "includeFiles": "{build,sponsors,paper}.py" },
     "api/payout.py": { "maxDuration": 60, "includeFiles": "{build,sponsors,paper}.py" },
     "api/picks.py": { "maxDuration": 30, "includeFiles": "{build,sponsors,paper}.py" },
     "api/bets.py": { "maxDuration": 30, "includeFiles": "{build,sponsors,paper}.py" },
