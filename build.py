@@ -681,7 +681,7 @@ def _ucl_compute(already_graded):
             fx = {"id": row["id"], "date": row["date"],
                   "home": row["home"], "away": row["away"],
                   "home_abbr": row["home"], "away_abbr": row["away"]}
-            upcoming.append({"fx": fx, "x": x, "score": rating(x)})
+            upcoming.append({"fx": fx, "x": x, "h": h, "a": a, "score": rating(x)})
 
     upcoming.sort(key=lambda r: r["score"], reverse=True)
     return upcoming, new_fin
@@ -802,7 +802,7 @@ def _uel_compute(already_graded):
             fx = {"id": row["id"], "date": row["date"],
                   "home": row["home"], "away": row["away"],
                   "home_abbr": row["home"], "away_abbr": row["away"]}
-            upcoming.append({"fx": fx, "x": x, "score": rating(x)})
+            upcoming.append({"fx": fx, "x": x, "h": h, "a": a, "score": rating(x)})
 
     upcoming.sort(key=lambda r: r["score"], reverse=True)
     return upcoming, new_fin
@@ -917,7 +917,7 @@ def _rest_compute():
             elif not e["completed"]:
                 fx = {"id": e["id"], "date": e["date"], "home": e["home"], "away": e["away"],
                       "home_abbr": e["home"], "away_abbr": e["away"], "league": league}
-                upcoming.append({"fx": fx, "x": x, "score": rating(x)})
+                upcoming.append({"fx": fx, "x": x, "h": hb, "a": ab, "score": rating(x)})
 
     upcoming.sort(key=lambda r: r["fx"]["date"])
     return upcoming, finished

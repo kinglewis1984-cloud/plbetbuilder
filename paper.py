@@ -198,17 +198,48 @@ def _leg_price(check, fx_odds):
 
 
 def _rows_for(comp):
-    """(list of {fx, legs, score}) sorted best-first, for the upcoming round."""
+    """(list of {fx, legs, score, h, a}) sorted best-first, for the upcoming
+    round. h/a are each side's blended per-game stats behind the model's
+    number - carried through so a leg's pick can be explained, not just
+    stated."""
     if comp == "pl":
         blends = team_blends()
         (_, _), fx = weekend_fixtures(weekend_windows()[1])
-        return [{"fx": r["fx"], "legs": r["legs"], "score": r["score"]}
+        return [{"fx": r["fx"], "legs": r["legs"], "score": r["score"],
+                 "h": r["h"], "a": r["a"], "x": r["x"]}
                 for r in compute_rows(fx, blends)]
     upcoming, _ = ucl_context() if comp == "ucl" else rest_context()
-    rows = [{"fx": u["fx"], "legs": suggest(u["x"]), "score": u["score"]}
+    rows = [{"fx": u["fx"], "legs": suggest(u["x"]), "score": u["score"],
+             "h": u.get("h"), "a": u.get("a"), "x": u["x"]}
             for u in upcoming]
     rows.sort(key=lambda r: r["score"], reverse=True)
     return rows
+
+
+def _reason_for(leg, x, h, a, home, away):
+    """Human-readable explanation of why the model picked this leg - the
+    actual per-team numbers behind the number that crossed suggest()'s
+    threshold, not just the threshold itself."""
+    if h is None or a is None or x is None:
+        return None
+    metric = leg["check"][0]
+    if metric in ("goals", "goals_u"):
+        return (f"{home} {h['gf_pg']:.1f} scored / {h['ga_pg']:.1f} conceded per game &middot; "
+                f"{away} {a['gf_pg']:.1f} scored / {a['ga_pg']:.1f} conceded per game "
+                f"&rarr; model expects {x['goals']:.1f} goals combined")
+    if metric == "btts":
+        return (f"{home} expected to score {x['h_goals']:.2f}, {away} expected to score "
+                f"{x['a_goals']:.2f} goals &mdash; both clear the 0.90 threshold")
+    if metric == "corners":
+        return (f"{home} {h['corners_pg']:.1f} corners/game &middot; "
+                f"{away} {a['corners_pg']:.1f} corners/game &rarr; {x['corners']:.1f} combined")
+    if metric == "cards":
+        return (f"{home} {h['yc_pg']:.2f} cards/game &middot; "
+                f"{away} {a['yc_pg']:.2f} cards/game &rarr; {x['cards']:.2f} combined")
+    if metric == "red":
+        return (f"Combined red cards last season: {h['rc'] + a['rc']:.0f} "
+                f"({home} {h['rc']:.0f}, {away} {a['rc']:.0f})")
+    return None
 
 
 # --------------------------------------------------------------------------- #
