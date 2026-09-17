@@ -43,6 +43,11 @@ alter table public.coupon_paper_bets
 -- one specific league instead of the whole comp)
 alter table public.coupon_paper_bets add column if not exists league text;
 
+-- re-run safe: add reason to an existing table — the "THE KEY STATS" explanation
+-- computed once at placement time and frozen (never recomputed on page view,
+-- so a settled bet's stated reason stays a fixed historical record)
+alter table public.coupon_paper_bets add column if not exists reason text;
+
 create unique index if not exists coupon_paper_bets_uk
   on public.coupon_paper_bets (comp, fixture_id, bet_type, market, line);
 create index if not exists coupon_paper_bets_comp_status_idx

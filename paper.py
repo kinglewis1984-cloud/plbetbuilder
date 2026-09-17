@@ -22,6 +22,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
+import build
 from build import (
     SUPA_URL, SUPA_KEY, compute_rows, fixtures, grade, suggest, team_blends,
     ucl_context, uk_now, weekend_fixtures, weekend_windows, _match_totals,
@@ -216,29 +217,115 @@ def _rows_for(comp):
     return rows
 
 
-def _reason_for(leg, x, h, a, home, away):
-    """Human-readable explanation of why the model picked this leg - the
-    actual per-team numbers behind the number that crossed suggest()'s
-    threshold, not just the threshold itself."""
+def _opening_run(matches, key_for, key_against):
+    """Current-season matches only (oldest first): has this team scored AND
+    conceded in every one of its opening league matches so far?"""
+    season_start = f"{build.THIS_SEASON}-08-01"
+    cur = sorted((m for m in matches if m["date"] >= season_start), key=lambda m: m["date"])
+    if len(cur) < 3:
+        return None
+    both = sum(1 for m in cur if m[key_for] > 0 and m[key_against] > 0)
+    if both != len(cur):
+        return None
+    return {"played": len(cur), "goals": int(sum(m[key_for] for m in cur))}
+
+
+def _btts_bullet(name, matches, is_home_side):
+    if not matches:
+        return None
+    last10 = matches[:10]
+    hits10 = sum(1 for m in last10 if m["btts"])
+    side = [m for m in matches if m["home"] == is_home_side][:20]
+    word = "at home" if is_home_side else "away"
+    if len(side) >= 5:
+        hits_side = sum(1 for m in side if m["btts"])
+        pct = round(100 * (hits10 + hits_side) / (len(last10) + len(side)))
+        return (f"{name} have recorded BTTS in {hits10} of their last {len(last10)} matches "
+                f"and {hits_side} of their last {len(side)} {word} "
+                f"&mdash; a {pct}% hit rate across both samples.")
+    pct = round(100 * hits10 / len(last10)) if last10 else 0
+    return f"{name} have recorded BTTS in {hits10} of their last {len(last10)} matches &mdash; {pct}%."
+
+
+def _goals_bullet(name, matches, line, over):
+    if not matches:
+        return None
+    last10 = matches[:10]
+    hits = sum(1 for m in last10 if (m["total"] > line) == over)
+    pct = round(100 * hits / len(last10)) if last10 else 0
+    word = "over" if over else "under"
+    return (f"{name} have gone {word} {line:g} combined goals in {hits} of their "
+            f"last {len(last10)} matches &mdash; {pct}%.")
+
+
+def _corners_bullet(name, matches, line, over):
+    sample = [m for m in matches if m.get("has_stats")][:10]
+    if not sample:
+        return None
+    word = "over" if over else "under"
+    hits = sum(1 for m in sample if (m["corners"] > line) == over)
+    pct = round(100 * hits / len(sample)) if sample else 0
+    return (f"{name} have gone {word} {line:g} combined corners in {hits} of their "
+            f"last {len(sample)} matches with data &mdash; {pct}%.")
+
+
+def _cards_bullet(name, matches, line, over):
+    sample = [m for m in matches if m.get("has_stats")][:10]
+    if not sample:
+        return None
+    word = "over" if over else "under"
+    hits = sum(1 for m in sample if (m["cards"] > line) == over)
+    pct = round(100 * hits / len(sample)) if sample else 0
+    return (f"{name} have gone {word} {line:g} combined cards in {hits} of their "
+            f"last {len(sample)} matches with data &mdash; {pct}%.")
+
+
+def _key_stats(bullets):
+    bullets = [b for b in bullets if b]
+    if not bullets:
+        return None
+    items = "".join(f"<li>{b}</li>" for b in bullets)
+    return f'<div class="key-stats"><span class="ks-tag">THE KEY STATS</span><ul>{items}</ul></div>'
+
+
+def _reason_for(leg, x, h, a, home, away, fx=None, comp=None, league_label=None):
+    """Human-readable explanation of why the model picked this leg. Goals,
+    BTTS, corners and cards get a real "last 10 matches" streak breakdown
+    (fetched fresh - only ever called once, at placement time, and the
+    result is stored - never recomputed on a page view); red-card risk
+    keeps the simpler season-total comparison (too rare an event for a
+    10-match sample to say much)."""
     if h is None or a is None or x is None:
         return None
-    metric = leg["check"][0]
-    if metric in ("goals", "goals_u"):
-        return (f"{home} {h['gf_pg']:.1f} scored / {h['ga_pg']:.1f} conceded per game &middot; "
-                f"{away} {a['gf_pg']:.1f} scored / {a['ga_pg']:.1f} conceded per game "
-                f"&rarr; model expects {x['goals']:.1f} goals combined")
-    if metric == "btts":
-        return (f"{home} expected to score {x['h_goals']:.2f}, {away} expected to score "
-                f"{x['a_goals']:.2f} goals &mdash; both clear the 0.90 threshold")
-    if metric == "corners":
-        return (f"{home} {h['corners_pg']:.1f} corners/game &middot; "
-                f"{away} {a['corners_pg']:.1f} corners/game &rarr; {x['corners']:.1f} combined")
-    if metric == "cards":
-        return (f"{home} {h['yc_pg']:.2f} cards/game &middot; "
-                f"{away} {a['yc_pg']:.2f} cards/game &rarr; {x['cards']:.2f} combined")
+    metric, line = leg["check"]
     if metric == "red":
         return (f"Combined red cards last season: {h['rc'] + a['rc']:.0f} "
                 f"({home} {h['rc']:.0f}, {away} {a['rc']:.0f})")
+    if metric not in ("goals", "goals_u", "btts", "corners", "cards") or fx is None:
+        return None
+
+    hl = build.team_domestic_league(fx.get("home_id"), comp, fx.get("league"))
+    al = build.team_domestic_league(fx.get("away_id"), comp, fx.get("league"))
+    hm = build.team_recent_matches(fx.get("home_id"), hl)
+    am = build.team_recent_matches(fx.get("away_id"), al)
+    label = league_label or "league"
+
+    if metric == "btts":
+        bullets = [_btts_bullet(home, hm, True), _btts_bullet(away, am, False)]
+        for who, matches in ((away, am), (home, hm)):
+            r = _opening_run(matches, "gf", "ga")
+            if r:
+                bullets.append(f"{who} have scored and conceded in all {r['played']} of their opening "
+                               f"{label} matches, scoring {r['goals']} goals across those fixtures.")
+                break
+        return _key_stats(bullets)
+    if metric in ("goals", "goals_u"):
+        over = metric == "goals"
+        return _key_stats([_goals_bullet(home, hm, line, over), _goals_bullet(away, am, line, over)])
+    if metric == "corners":
+        return _key_stats([_corners_bullet(home, hm, line, True), _corners_bullet(away, am, line, True)])
+    if metric == "cards":
+        return _key_stats([_cards_bullet(home, hm, line, True), _cards_bullet(away, am, line, True)])
     return None
 
 
@@ -258,18 +345,23 @@ def place(comp):
     for r in rows:
         f = r["fx"]
         fx_odds = _odds_for(f, book)
+        league_label = _league_label(comp, f)
+        home = f.get("home") or f.get("home_abbr")
+        away = f.get("away") or f.get("away_abbr")
         for leg in r["legs"]:
             pr, src = _leg_price(leg["check"], fx_odds)
             if pr is None:
                 continue
             if src == "real":
                 real_used += 1
+            reason = _reason_for(leg, r.get("x"), r.get("h"), r.get("a"), home, away,
+                                  fx=f, comp=comp, league_label=league_label)
             bets.append({
-                "comp": comp, "league": _league_label(comp, f),
+                "comp": comp, "league": league_label,
                 "round": round_id, "bet_type": "single",
                 "fixture_id": f["id"], "fixture": _name(f), "kickoff": f["date"],
                 "market": leg["check"][0], "line": float(leg["check"][1]),
-                "leg_text": leg["text"], "legs": None,
+                "leg_text": leg["text"], "legs": None, "reason": reason,
                 "price": pr, "price_src": src, "stake": STAKES[comp], "status": "pending",
             })
 
@@ -297,6 +389,7 @@ def place(comp):
             "leg_text": " + ".join(t for _, _, t, _, _ in top_priced),
             "legs": [{"market": m, "line": l, "text": t}
                      for m, l, t, _, _ in top_priced],
+            "reason": None,   # combines several legs - no single "reason" applies
             "price": round(combo, 2), "price_src": src,
             "stake": STAKES[comp], "status": "pending",
         })
@@ -678,20 +771,31 @@ def generate_paper_html():
     _MARKET_FILTER = {"goals": "Goals", "goals_u": "Goals", "corners": "Corners",
                        "cards": "Cards", "btts": "BTTS", "red": "Red card"}
 
+    _rb_counter = {"n": 0}
+
     def bet_row(b):
         league = b.get("league") or b["comp"].upper()
         market = _MARKET_FILTER.get(b["market"], "")
-        return (
-            f'<tr data-league="{league}" data-market="{market}">'
-            f'<td>{(b["placed_at"] or "")[:10]}</td><td>{league}</td>'
+        reason = b.get("reason")
+        clickable = " bet-row" if reason else ""
+        chev = '<span class="chev">&#8250;</span>' if reason else ""
+        row = (
+            f'<tr data-league="{league}" data-market="{market}" class="{clickable.strip()}"'
+            + (f' data-target="rb{_rb_counter["n"]}" tabindex="0" role="button" aria-expanded="false"' if reason else "")
+            + f'><td>{(b["placed_at"] or "")[:10]}</td><td>{league}</td>'
             f"<td>{b['fixture']}</td>"
             f"<td>{b['leg_text']}{' <span class=bld>BUILDER</span>' if b['bet_type'] == 'builder' else ''}</td>"
             f"<td>{float(b['price']):.2f}"
             f"{' <span class=rl>live</span>' if b.get('price_src') == 'real' else ''}</td>"
             f"<td class='st-{b['status']}'>{b['status']}</td>"
             f"<td class='{'up' if (b['pnl'] or 0) >= 0 else 'down'}'>"
-            f"{_fmt(float(b['pnl'])) if b['pnl'] is not None else '&ndash;'}</td></tr>"
+            f"{_fmt(float(b['pnl'])) if b['pnl'] is not None else '&ndash;'}{chev}</td></tr>"
         )
+        if not reason:
+            return row
+        rid = f'rb{_rb_counter["n"]}'
+        _rb_counter["n"] += 1
+        return row + f'<tr class="reason-row" id="{rid}" hidden><td colspan="7">{reason}</td></tr>'
 
     # Group by fixture so every bet on the same match sits together, rather
     # than interleaving with whatever else was placed around the same time.
@@ -759,7 +863,8 @@ def generate_paper_html():
     <script>
     (function () {{
       var allRows = Array.prototype.slice.call(
-        document.getElementById('rb-body').getElementsByTagName('tr'));
+        document.getElementById('rb-body').getElementsByTagName('tr'))
+        .filter(function (r) {{ return !r.classList.contains('reason-row'); }});
       var size = 25, page = 1, leagueFilter = 'all', marketFilter = 'all';
       function visibleRows() {{
         return allRows.filter(function (r) {{
@@ -767,11 +872,16 @@ def generate_paper_html():
             && (marketFilter === 'all' || r.dataset.market === marketFilter);
         }});
       }}
+      function collapseReason(row) {{
+        if (!row.dataset.target) return;
+        var panel = document.getElementById(row.dataset.target);
+        if (panel) {{ panel.hidden = true; row.setAttribute('aria-expanded', 'false'); }}
+      }}
       function render() {{
         var vis = visibleRows();
         var t = Math.max(1, Math.ceil(vis.length / size));
         if (page > t) page = t;
-        allRows.forEach(function (r) {{ r.hidden = true; }});
+        allRows.forEach(function (r) {{ r.hidden = true; collapseReason(r); }});
         vis.forEach(function (r, i) {{
           if (i >= (page - 1) * size && i < page * size) r.hidden = false;
         }});
@@ -812,6 +922,19 @@ def generate_paper_html():
             b.classList.toggle('on', b === btn);
           }});
           render();
+        }});
+      }});
+      document.querySelectorAll('.bet-row').forEach(function (row) {{
+        function toggleReason() {{
+          var panel = document.getElementById(row.dataset.target);
+          if (!panel) return;
+          var open = !panel.hidden;
+          panel.hidden = open;
+          row.setAttribute('aria-expanded', String(!open));
+        }}
+        row.addEventListener('click', toggleReason);
+        row.addEventListener('keydown', function (e) {{
+          if (e.key === 'Enter' || e.key === ' ') {{ e.preventDefault(); toggleReason(); }}
         }});
       }});
       render();
@@ -870,6 +993,18 @@ a{{color:#ffb80c}}
 .hist-rd summary::-webkit-details-marker{{display:none}}
 .hist-rd summary span:first-child{{font-weight:600}}
 .hist-rd table{{margin:0 0 10px}}
+.bet-row{{cursor:pointer}}
+.bet-row:hover{{background:#2a2a2a}}
+.chev{{color:#e0a72c;display:inline-block;margin-left:6px;transition:transform .15s ease}}
+.bet-row[aria-expanded="true"] .chev{{transform:rotate(90deg)}}
+.reason-row td{{border-bottom:1px solid #2e2e2e;padding:0}}
+.key-stats{{background:#211a10;border-left:3px solid #e0a72c;margin:8px 6px 12px;padding:12px 14px}}
+.ks-tag{{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:700;
+  letter-spacing:.08em;color:#e0a72c;background:#2c2113;border:1px solid #4a3a1c;border-radius:3px;
+  padding:2px 6px;margin-bottom:8px}}
+.key-stats ul{{margin:6px 0 0;padding-left:18px;color:#d8cdb8}}
+.key-stats li{{margin:6px 0;font-size:12.5px;line-height:1.55}}
+.key-stats li::marker{{color:#e0a72c}}
 .rb-pager{{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:8px;font-size:12px;flex-wrap:wrap}}
 .rb-size{{display:flex;align-items:center;gap:6px;color:#9a9a9a}}
 .rb-size select{{background:#2e2e2e;color:#eee;border:1px solid #444;border-radius:6px;padding:4px 7px;font-size:12px}}

@@ -893,6 +893,81 @@ def team_domestic_league(team_id, comp, league_hint=None):
     return league_hint
 
 
+_team_recent_cache = {}
+
+
+def team_recent_matches(team_id, league, limit=10):
+    """This team's last `limit` completed matches (this + last season),
+    newest first, WITH corners/cards - goals/home-away come from the cheap
+    team-schedule call; corners/cards need one fixtures() call per distinct
+    date those matches were played on (fixtures() already batches a whole
+    day's scoreboard, has_stats/corners/cards included, no per-match
+    /summary calls needed). Used to build a real "last 10 games" reason for
+    a pick, not just a season-long average.
+
+    Cached per (team_id, league, limit): a single place() run asks for the
+    same team's history once per leg on that fixture (goals/btts/corners/
+    cards each call this), so without caching a 4-leg fixture would redo
+    the same ~1s fetch four times over."""
+    cache_key = (team_id, league, limit)
+    if cache_key in _team_recent_cache:
+        return _team_recent_cache[cache_key]
+    if not team_id or not league:
+        return []
+    goals_only = []
+    for season in (THIS_SEASON, LAST_SEASON):
+        try:
+            data = get(f"https://site.api.espn.com/apis/site/v2/sports/soccer/{league}"
+                       f"/teams/{team_id}/schedule?season={season}")
+        except Exception:
+            continue
+        for ev in data.get("events", []):
+            comp = ev["competitions"][0]
+            if not comp["status"]["type"].get("completed"):
+                continue
+            cs = comp["competitors"]
+            me = next((c for c in cs if c["team"]["id"] == str(team_id)), None)
+            opp = next((c for c in cs if c["team"]["id"] != str(team_id)), None)
+            if not me or not opp:
+                continue
+            try:
+                gf, ga = float(me["score"]["value"]), float(opp["score"]["value"])
+            except Exception:
+                continue
+            goals_only.append({"date": ev["date"], "home": me.get("homeAway") == "home",
+                               "gf": gf, "ga": ga, "total": gf + ga, "btts": gf > 0 and ga > 0})
+    goals_only.sort(key=lambda m: m["date"], reverse=True)
+    recent = goals_only[:limit]
+    if not recent:
+        _team_recent_cache[cache_key] = []
+        return []
+
+    dates = sorted({m["date"][:10].replace("-", "") for m in recent})
+
+    def fetch_day(d):
+        try:
+            return d, fixtures(d, d)
+        except Exception:
+            return d, []
+
+    day_fixtures = {}
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        for d, fx in ex.map(fetch_day, dates):
+            day_fixtures[d] = fx
+
+    for m in recent:
+        day = m["date"][:10].replace("-", "")
+        match = next((f for f in day_fixtures.get(day, [])
+                      if str(f["home_id"]) == str(team_id) or str(f["away_id"]) == str(team_id)), None)
+        if match and match["result"]:
+            r = match["result"]
+            m["corners"], m["cards"], m["has_stats"] = r["corners"], r["cards"], r["has_stats"]
+        else:
+            m["corners"], m["cards"], m["has_stats"] = 0, 0, False
+    _team_recent_cache[cache_key] = recent
+    return recent
+
+
 def _rest_compute():
     """The expensive path (~20s, 7 leagues x scoreboard + per-team stats):
     one pass over every rest-of-football competition producing BOTH the
