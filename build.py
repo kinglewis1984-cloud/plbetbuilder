@@ -680,7 +680,8 @@ def _ucl_compute(already_graded):
             x = expected(h, a)
             fx = {"id": row["id"], "date": row["date"],
                   "home": row["home"], "away": row["away"],
-                  "home_abbr": row["home"], "away_abbr": row["away"]}
+                  "home_abbr": row["home"], "away_abbr": row["away"],
+                  "home_id": row["home_id"], "away_id": row["away_id"]}
             upcoming.append({"fx": fx, "x": x, "h": h, "a": a, "score": rating(x)})
 
     upcoming.sort(key=lambda r: r["score"], reverse=True)
@@ -801,7 +802,8 @@ def _uel_compute(already_graded):
             x = expected(h, a)
             fx = {"id": row["id"], "date": row["date"],
                   "home": row["home"], "away": row["away"],
-                  "home_abbr": row["home"], "away_abbr": row["away"]}
+                  "home_abbr": row["home"], "away_abbr": row["away"],
+                  "home_id": row["home_id"], "away_id": row["away_id"]}
             upcoming.append({"fx": fx, "x": x, "h": h, "a": a, "score": rating(x)})
 
     upcoming.sort(key=lambda r: r["score"], reverse=True)
@@ -878,6 +880,19 @@ def _rest_blend_for(team_id, league, is_cup):
     return ucl_blend((team_id, _rest_english_tier(team_id) if is_cup else league))
 
 
+def team_domestic_league(team_id, comp, league_hint=None):
+    """Which league slug to pull a team's own match history from - their
+    real domestic league, not necessarily the competition tonight's fixture
+    is in (a cup fixture, or UCL/UEL, mixes clubs from different leagues)."""
+    if comp == "pl":
+        return "eng.1"
+    if comp in ("ucl", "uel"):
+        return ucl_league_index([team_id]).get(team_id)
+    if comp == "rest":
+        return _rest_english_tier(team_id) if league_hint in REST_CUPS else league_hint
+    return league_hint
+
+
 def _rest_compute():
     """The expensive path (~20s, 7 leagues x scoreboard + per-team stats):
     one pass over every rest-of-football competition producing BOTH the
@@ -916,7 +931,8 @@ def _rest_compute():
                 finished[e["id"]] = {**tot, "kickoff": e["date"]}
             elif not e["completed"]:
                 fx = {"id": e["id"], "date": e["date"], "home": e["home"], "away": e["away"],
-                      "home_abbr": e["home"], "away_abbr": e["away"], "league": league}
+                      "home_abbr": e["home"], "away_abbr": e["away"], "league": league,
+                      "home_id": e["home_id"], "away_id": e["away_id"]}
                 upcoming.append({"fx": fx, "x": x, "h": hb, "a": ab, "score": rating(x)})
 
     upcoming.sort(key=lambda r: r["fx"]["date"])
